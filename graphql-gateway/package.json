@@ -1,0 +1,20 @@
+{
+  "name": "@aegisvolt/graphql-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node --input-type=module -e \"import {copyFileSync} from 'node:fs'; copyFileSync('src/schema.graphql','dist/schema.graphql')\"",
+    "graphql:validate": "tsx scripts/validate-schema.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@aegisvolt/common": "1.0.0",
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "fastify": "^5.2.0",
+    "graphql": "^16.9.0",
+    "graphql-yoga": "^5.10.0"
+  }
+}

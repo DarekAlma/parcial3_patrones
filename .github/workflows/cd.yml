@@ -60,7 +60,7 @@ jobs:
     runs-on: [self-hosted, aegisvolt]
     environment: ${{ needs.resolve-env.outputs.environment }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: terraform workspace select + apply -auto-approve
         run: ./scripts/ci/terraform.ps1 -Action apply -Environment ${{ needs.resolve-env.outputs.environment }}
 
@@ -79,6 +79,6 @@ jobs:
           - energy-dispatch-service
           - graphql-gateway
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Canary 20% -> health checks / CloudWatch -> 100% o rollback
         run: ./scripts/ci/canary-deploy.ps1 -Environment ${{ needs.resolve-env.outputs.environment }} -Service ${{ matrix.service }} -Version ${{ github.sha }}
