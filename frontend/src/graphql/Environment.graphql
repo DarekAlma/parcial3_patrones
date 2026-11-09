@@ -1,0 +1,9 @@
+query Environment {
+  environment {
+    environment
+    service
+    version
+    track
+    flagAdminEnabled
+  }
+}

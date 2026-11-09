@@ -1,0 +1,8 @@
+mutation SetFeatureFlag($name: String!, $enabled: Boolean!) {
+  setFeatureFlag(name: $name, enabled: $enabled) {
+    name
+    enabled
+    updatedBy
+    updatedAt
+  }
+}

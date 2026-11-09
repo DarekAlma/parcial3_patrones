@@ -1,0 +1,10 @@
+query FeatureFlags {
+  featureFlags {
+    name
+    enabled
+    description
+    environment
+    updatedBy
+    updatedAt
+  }
+}

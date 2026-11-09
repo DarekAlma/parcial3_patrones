@@ -1,0 +1,36 @@
+{
+  "name": "aegisvolt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AegisVolt - plataforma cloud-native de gestion de carga para flotas electricas (Proyecto Final, Patrones Arquitectonicos Avanzados)",
+  "type": "module",
+  "workspaces": [
+    "packages/common",
+    "services/station-reservation-service",
+    "services/billing-wallet-service",
+    "services/energy-dispatch-service",
+    "graphql-gateway"
+  ],
+  "scripts": {
+    "build": "npm run build -w @aegisvolt/common && npm run build -w @aegisvolt/station-reservation-service -w @aegisvolt/billing-wallet-service -w @aegisvolt/energy-dispatch-service -w @aegisvolt/graphql-gateway",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "graphql:validate": "npm run graphql:validate -w @aegisvolt/graphql-gateway",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "vitest run --project e2e",
+    "dev:stack": "node --import tsx tests/support/dev-stack.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^20.17.0",
+    "eslint": "^9.17.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^3.2.4"
+  }
+}

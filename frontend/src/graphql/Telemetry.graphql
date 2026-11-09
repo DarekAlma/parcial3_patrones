@@ -1,0 +1,13 @@
+query Telemetry($stationId: ID!) {
+  telemetry(stationId: $stationId, limit: 40) {
+    connectorId
+    sagaId
+    timestamp
+    powerKw
+    kwhDelivered
+    voltageV
+    currentA
+    temperatureC
+    socPercent
+  }
+}

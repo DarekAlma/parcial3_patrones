@@ -60,13 +60,25 @@ jobs:
     runs-on: [self-hosted, aegisvolt]
     environment: ${{ needs.resolve-env.outputs.environment }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: terraform workspace select + apply -auto-approve
         run: ./scripts/ci/terraform.ps1 -Action apply -Environment ${{ needs.resolve-env.outputs.environment }}
 
+  # Publica imagenes en ECR, aplica manifiestos (conservando la version stable)
+  # y registra el nodo EKS en el NLB. La version nueva entra SOLO por canary.
+  k8s-apply:
+    name: k8s-apply
+    needs: [resolve-env, terraform-apply]
+    runs-on: [self-hosted, aegisvolt]
+    environment: ${{ needs.resolve-env.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Publicar imagenes y aplicar manifiestos del ambiente
+        run: ./scripts/k8s/deploy.ps1 -Environment ${{ needs.resolve-env.outputs.environment }}
+
   canary-deploy:
     name: canary-deploy (${{ matrix.service }})
-    needs: [resolve-env, terraform-apply]
+    needs: [resolve-env, k8s-apply]
     runs-on: [self-hosted, aegisvolt]
     environment: ${{ needs.resolve-env.outputs.environment }}
     strategy:
@@ -78,7 +90,8 @@ jobs:
           - billing-wallet-service
           - energy-dispatch-service
           - graphql-gateway
+          - frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Canary 20% -> health checks / CloudWatch -> 100% o rollback
         run: ./scripts/ci/canary-deploy.ps1 -Environment ${{ needs.resolve-env.outputs.environment }} -Service ${{ matrix.service }} -Version ${{ github.sha }}

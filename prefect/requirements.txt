@@ -1,0 +1,2 @@
+# Dependencias de los flows (la imagen base ya trae prefect==3.1.15 y httpx).
+boto3>=1.35,<2

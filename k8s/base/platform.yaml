@@ -1,0 +1,65 @@
+# Recursos de plataforma del namespace aegisvolt (uno por cluster/ambiente).
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aegisvolt
+  labels:
+    app.kubernetes.io/part-of: aegisvolt
+    pod-security.kubernetes.io/enforce: restricted
+---
+# Endpoint de AWS dentro del cluster.
+# En AWS real los pods usan los endpoints de servicio (dynamodb.us-east-1.amazonaws.com,
+# logs.us-east-1.amazonaws.com), que la VPC resuelve hacia los VPC Endpoints.
+# Con Floci, el equivalente es este Service SIN selector: apunta a la IP de
+# Floci en la red Docker (la EndpointSlice la escribe scripts/k8s/deploy.ps1).
+# Asi ningun pod sale a la AWS real.
+apiVersion: v1
+kind: Service
+metadata:
+  name: floci
+  labels:
+    app.kubernetes.io/part-of: aegisvolt
+spec:
+  ports:
+    - name: aws
+      port: 4566
+      targetPort: 4566
+---
+# Credenciales de Floci (no son secretas: Floci acepta test/test).
+# En AWS real se elimina: EKS Pod Identity inyecta credenciales temporales
+# del rol IAM de cada ServiceAccount.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-credentials
+type: Opaque
+stringData:
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+---
+# Solo el trafico necesario: el gateway llama a los 3 servicios; dispatch llama a station.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-ingress
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [station-reservation-service, billing-wallet-service, energy-dispatch-service]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: energy-dispatch-service
+        - podSelector:
+            matchLabels:
+              aegisvolt.io/role: canary-probe
+      ports:
+        - port: 8080

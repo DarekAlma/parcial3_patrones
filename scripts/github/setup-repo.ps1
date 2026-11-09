@@ -17,24 +17,27 @@ Set-Location $root
 $gh = (Get-Command gh -ErrorAction SilentlyContinue).Source
 if (-not $gh) { $gh = 'C:\Program Files\GitHub CLI\gh.exe' }
 
-function Invoke-Gh { & $gh @args; if ($LASTEXITCODE -ne 0) { throw "gh $($args -join ' ') fallo ($LASTEXITCODE)." } }
-function Invoke-Git { & git.exe @args; if ($LASTEXITCODE -ne 0) { throw "git $($args -join ' ') fallo ($LASTEXITCODE)." } }
+# En PowerShell 5.1 cualquier salida a stderr de un binario nativo (p. ej. el
+# progreso de git push) se vuelve error terminante con 'Stop'. Dentro de los
+# helpers se usa 'Continue' y se decide solo por el exit code.
+function Invoke-Gh { $ErrorActionPreference = 'Continue'; & $gh @args; if ($LASTEXITCODE -ne 0) { throw "gh $($args -join ' ') fallo ($LASTEXITCODE)." } }
+function Invoke-Git { $ErrorActionPreference = 'Continue'; & git.exe @args 2>&1 | ForEach-Object { "$_" }; if ($LASTEXITCODE -ne 0) { throw "git $($args -join ' ') fallo ($LASTEXITCODE)." } }
+# Devuelve $true si el comando termina con exit code 0 (para verificaciones).
+function Test-Native { $ErrorActionPreference = 'Continue'; & $args[0] @($args | Select-Object -Skip 1) *> $null; return ($LASTEXITCODE -eq 0) }
 
 $owner = (Invoke-Gh api user --jq .login).Trim()
 $repo = "$owner/$RepoName"
 Write-Host "Repositorio destino: $repo ($Visibility)"
 
 # 1. Repo + rama dev
-& $gh repo view $repo *> $null
-if ($LASTEXITCODE -ne 0) {
+if (-not (Test-Native $gh repo view $repo)) {
     Invoke-Gh repo create $repo "--$Visibility" --description 'AegisVolt - plataforma cloud-native de gestion de carga para flotas electricas' --source . --remote origin
 }
 Invoke-Git push -u origin dev
 
 # 2. test y prod nacen de dev
 foreach ($branch in 'test', 'prod') {
-    & git show-ref --verify --quiet "refs/heads/$branch"
-    if ($LASTEXITCODE -ne 0) { Invoke-Git branch $branch dev }
+    if (-not (Test-Native git.exe show-ref --verify --quiet "refs/heads/$branch")) { Invoke-Git branch $branch dev }
     Invoke-Git push -u origin $branch
 }
 
@@ -46,7 +49,9 @@ Invoke-Gh api -X PATCH "repos/$repo" `
 
 # 4. Ruleset (idempotente: actualiza si ya existe)
 $rulesetFile = Join-Path $root '.github\rulesets\protected-env-branches.json'
-$existing = (Invoke-Gh api "repos/$repo/rulesets" --jq '.[] | select(.name=="protected-env-branches") | .id')
+# Se filtra en PowerShell: PS 5.1 elimina las comillas dobles de argumentos nativos (rompe --jq).
+$rulesets = ((Invoke-Gh api "repos/$repo/rulesets") -join "`n") | ConvertFrom-Json
+$existing = ($rulesets | ForEach-Object { $_ } | Where-Object { $_.name -eq 'protected-env-branches' }).id
 if ($existing) {
     Invoke-Gh api -X PUT "repos/$repo/rulesets/$existing" --input $rulesetFile | Out-Null
     Write-Host "Ruleset actualizado (id $existing)."

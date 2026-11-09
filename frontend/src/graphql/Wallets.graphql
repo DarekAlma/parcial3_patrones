@@ -1,0 +1,8 @@
+query Wallets {
+  wallets {
+    fleetId
+    fleetName
+    balanceCents
+    currency
+  }
+}
