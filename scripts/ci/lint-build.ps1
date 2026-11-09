@@ -39,6 +39,21 @@ foreach ($stack in 'infra\bootstrap', 'infra\terraform') {
     } finally { Pop-Location }
 }
 
+# Manifiestos Kubernetes: cada overlay debe renderizar (kustomize) y contener
+# los 8 Deployments (stable + canary de los 4 servicios) con su ConfigMap de ambiente.
+foreach ($envName in $ValidEnvironments) {
+    $overlay = Join-Path $RepoRoot "k8s\overlays\$envName"
+    if (-not (Test-Path $overlay)) { continue }
+    $rendered = Join-Path ([IO.Path]::GetTempPath()) "aegisvolt-lint-$envName.yaml"
+    & kubectl kustomize $overlay | Out-File -FilePath $rendered -Encoding utf8
+    if ($LASTEXITCODE -ne 0) { throw "kubectl kustomize fallo para $envName" }
+    $text = Get-Content $rendered -Raw
+    $deployments = ([regex]::Matches($text, '(?m)^kind: Deployment')).Count
+    if ($deployments -ne 8) { throw "Overlay ${envName}: se esperaban 8 Deployments y hay $deployments" }
+    if ($text -notmatch "AEGIS_ENV: $envName") { throw "Overlay ${envName}: ConfigMap sin AEGIS_ENV=$envName" }
+    Write-Host "k8s/overlays/$envName OK ($deployments Deployments)"
+}
+
 # Imagenes Docker (la misma imagen se promueve entre ambientes).
 $sha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA.Substring(0, 12) } else { 'local' }
 foreach ($svc in $AegisServices) {

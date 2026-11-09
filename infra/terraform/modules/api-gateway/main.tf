@@ -19,7 +19,7 @@
 #   el VPCE del ambiente (aws:SourceVpce). Desde Internet no es alcanzable.
 #
 # Los targets del NLB los registra el pipeline de despliegue
-# (scripts/k8s/register-nlb-targets.ps1), igual que lo haria el AWS Load
+# (scripts/k8s/deploy.ps1), igual que lo haria el AWS Load
 # Balancer Controller con un TargetGroupBinding: Terraform es duenio del NLB,
 # del target group y del listener; Kubernetes es duenio de los targets.
 # =============================================================================

@@ -15,6 +15,7 @@ provider "aws" {
       cloudwatch   = endpoints.value
       dynamodb     = endpoints.value
       ec2          = endpoints.value
+      ecr          = endpoints.value
       eks          = endpoints.value
       elbv2        = endpoints.value
       iam          = endpoints.value

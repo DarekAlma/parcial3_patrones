@@ -1,0 +1,30 @@
+# Overlay del ambiente test: solo cambia la configuracion, nunca la imagen.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: aegisvolt
+resources:
+  - ../../base
+labels:
+  - pairs:
+      aegisvolt.io/environment: test
+    includeSelectors: false
+configMapGenerator:
+  - name: aegisvolt-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - AEGIS_ENV=test
+      - PROJECT=aegisvolt
+      - AWS_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://floci.aegisvolt.svc.cluster.local:4566
+      - CLOUDWATCH_LOGS=true
+      - LOG_STDOUT=true
+      - STATION_SERVICE_URL=http://station-reservation-service.aegisvolt.svc.cluster.local:8080
+      - BILLING_SERVICE_URL=http://billing-wallet-service.aegisvolt.svc.cluster.local:8080
+      - DISPATCH_SERVICE_URL=http://energy-dispatch-service.aegisvolt.svc.cluster.local:8080
+      - FLAG_ADMIN_ENABLED=true
+      - FLAGS_CACHE_MS=3000
+      - PEAK_HOURS=7-10,17-21
+      - PRICING_TIMEZONE=America/Bogota
+      - SIMULATOR_SPEED_FACTOR=60
+      - SEED_DATA=true

@@ -23,6 +23,11 @@ services:
     environment:
       FLOCI_STORAGE_MODE: persistent
       FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+      # ECR con URIs estilo path (localhost:4566/<cuenta>/<region>/<repo>):
+      # Docker Desktop (containerd image store) solo permite HTTP plano hacia
+      # "localhost", no hacia *.localhost. Los clusters k3s reciben el mirror
+      # de este mismo hostname al crearse.
+      FLOCI_SERVICES_ECR_URI_STYLE: path
     volumes:
       - //var/run/docker.sock:/var/run/docker.sock
       - floci-data:/app/data
