@@ -1,5 +1,7 @@
 # Documentación AegisVolt — índice
 
+> **Día de la sustentación:** sigue [GUION-DEMO.md](GUION-DEMO.md) y corre `.\scripts\demo\preflight.ps1 -Fix` 30 minutos antes.
+
 ## Guías de sustentación (por capa de la rúbrica)
 
 | Capa | Peso | Documento | Preguntas guía del enunciado |
