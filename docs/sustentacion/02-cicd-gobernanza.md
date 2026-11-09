@@ -138,7 +138,7 @@ terraform apply -auto-approve -var-file=environments/$Environment.tfvars
 
 ### ¿Qué métrica o condición evalúa su etapa de Canary Deployment antes de promover el tráfico del 20% al 100% en Kubernetes?
 
-> Sección completa en [04-canary.md](04-canary.md), que se escribe junto con la fase de Kubernetes.
+> Detalle completo, resultados reales y demo del rollback en [04-kubernetes-canary.md](04-kubernetes-canary.md).
 
 **Respuesta corta:** el canary corre como un Deployment aparte con label `track=canary`, detrás del mismo Service, con 1 réplica de 5 (**20%** del tráfico). Durante la ventana de análisis se evalúan tres condiciones:
 1. **Readiness/health:** el canary pasa `/health` (rollout `Available`) y no tiene reinicios.

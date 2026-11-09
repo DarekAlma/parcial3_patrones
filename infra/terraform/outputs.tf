@@ -52,3 +52,7 @@ output "nlb_target_group_arn" {
 output "private_api_invoke_url" {
   value = module.api_gateway.private_api_invoke_url
 }
+
+output "ecr_repository_urls" {
+  value = module.ecr.repository_urls
+}

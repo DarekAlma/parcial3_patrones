@@ -107,3 +107,11 @@ module "api_gateway" {
   enable_private_api     = var.enable_private_api
   execute_api_vpce_id    = module.network.execute_api_vpce_id
 }
+
+module "ecr" {
+  source = "./modules/ecr"
+
+  project     = var.project
+  environment = local.environment
+  services    = local.services
+}

@@ -5,7 +5,7 @@
 | Capa | Peso | Documento | Preguntas guía del enunciado |
 |------|------|-----------|------------------------------|
 | 1. IaC, S3, Redes, DynamoDB | 30% | [sustentacion/01-infraestructura-iac.md](sustentacion/01-infraestructura-iac.md) | 6.1 (aislamiento test/prod, versiones del tfstate, recorrido de red por VPCE) |
-| 2. CI/CD, Git, Canary | 25% | [sustentacion/02-cicd-gobernanza.md](sustentacion/02-cicd-gobernanza.md) | 6.2 (push bloqueado, apply dinámico, métrica del canary) |
+| 2. CI/CD, Git, Canary | 25% | [sustentacion/02-cicd-gobernanza.md](sustentacion/02-cicd-gobernanza.md) + [04-kubernetes-canary.md](sustentacion/04-kubernetes-canary.md) | 6.2 (push bloqueado, apply dinámico, métrica del canary) |
 | 3. Backend, GraphQL, SAGA, Flags | 25% | [sustentacion/03-backend-saga.md](sustentacion/03-backend-saga.md) | 6.3 (compensación en DynamoDB, idempotencia) |
 | 4. Observabilidad | 12% | `sustentacion/05-observabilidad-frontend.md` *(fase Prefect)* | 6.4 (Prefect + correlation_id en CloudWatch) |
 | 5. Frontend | 8% | `sustentacion/05-observabilidad-frontend.md` *(fase frontend)* | 6.4 (flag en dev sin redesplegar) |
@@ -15,6 +15,7 @@
 | Documento | Contenido |
 |-----------|-----------|
 | [GOBERNANZA-GIT.md](GOBERNANZA-GIT.md) | Ramas, promoción, ruleset, pipelines, runner |
+| [sustentacion/04-kubernetes-canary.md](sustentacion/04-kubernetes-canary.md) | Kubernetes, canary 20/80, gate de CloudWatch, rollback |
 | [sustentacion/01-infraestructura-iac.md](sustentacion/01-infraestructura-iac.md) | Estructura Terraform, workspaces, backend, red, tablas |
 
 ## Dónde están las cosas importantes

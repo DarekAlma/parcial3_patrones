@@ -201,7 +201,7 @@ aws ec2 describe-vpc-endpoints --filters Name=vpc-endpoint-type,Values=Interface
 
 **Por qué NLB y no ALB:** el VPC Link de API Gateway se conecta a un NLB. El NLB trabaja en capa 4 y no termina HTTP, así que el enrutamiento HTTP lo hace API Gateway y el canary lo hace Kubernetes.
 
-**Quién registra los targets del NLB:** Terraform es dueño del NLB, del target group y del listener. Los targets (IP del nodo : NodePort) los registra el pipeline de despliegue, igual que el AWS Load Balancer Controller con un `TargetGroupBinding` en EKS real. Así un reemplazo de nodos no requiere un `terraform apply`.
+**Quién registra los targets del NLB:** Terraform es dueño del NLB, del target group y del listener. Los targets (IP del nodo : NodePort) los registra el pipeline de despliegue ([scripts/k8s/deploy.ps1](../../scripts/k8s/deploy.ps1)), igual que el AWS Load Balancer Controller con un `TargetGroupBinding` en EKS real. Así un reemplazo de nodos no requiere un `terraform apply`.
 
 ---
 
