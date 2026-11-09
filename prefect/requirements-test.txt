@@ -1,0 +1,2 @@
+# Pruebas unitarias de las reglas de auditoria (logica pura: no requiere Prefect ni AWS).
+pytest>=8,<9
