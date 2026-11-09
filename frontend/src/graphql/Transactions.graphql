@@ -1,0 +1,56 @@
+fragment TransactionFields on ChargeTransaction {
+  sagaId
+  correlationId
+  status
+  environment
+  fleetId
+  stationId
+  connectorId
+  priority
+  kwh
+  amountCents
+  quote {
+    priceCentsPerKwh
+    surgeApplied
+    tier
+  }
+  steps {
+    name
+    kind
+    status
+    attempts
+    startedAt
+    finishedAt
+    detail
+    error
+  }
+  compensations {
+    step
+    status
+    attempts
+    outcome
+    at
+    error
+  }
+  error {
+    step
+    code
+    message
+  }
+  createdAt
+  updatedAt
+  completedAt
+  durationMs
+}
+
+query Transactions($limit: Int) {
+  transactions(limit: $limit) {
+    ...TransactionFields
+  }
+}
+
+mutation ReserveAndActivateCharge($input: ReserveChargeInput!) {
+  reserveAndActivateCharge(input: $input) {
+    ...TransactionFields
+  }
+}

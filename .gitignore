@@ -36,3 +36,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+# Reportes de pruebas (JUnit)
+reports/

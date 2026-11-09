@@ -1,0 +1,266 @@
+"""
+AegisVolt - esquema GraphQL unificado (capa de agregacion).
+
+Queries   : estado de electrolineras, conectores, telemetria, flags, billeteras e historial de SAGAs.
+Mutations : iniciar la SAGA "Reservar y Activar Carga" (reserva + pago + sesion de carga),
+            administrar flags del ambiente y recuperar SAGAs huerfanas.
+"""
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  "Ambiente que atiende esta API (dev | test | prod) y version desplegada."
+  environment: EnvironmentInfo!
+
+  "Feature flags del ambiente actual (estado independiente por ambiente)."
+  featureFlags: [FeatureFlag!]!
+
+  "Electrolineras con disponibilidad de conectores en tiempo real."
+  stations: [Station!]!
+  station(id: ID!): Station
+
+  "Ultimos puntos de telemetria de una estacion (mas reciente primero)."
+  telemetry(stationId: ID!, limit: Int = 20): [TelemetryPoint!]!
+
+  "Sesiones de transferencia de energia."
+  chargingSessions(status: SessionStatus): [ChargingSession!]!
+
+  wallets: [Wallet!]!
+  wallet(fleetId: ID!): Wallet
+
+  "Cotizacion de una carga (aplica ENABLE_DYNAMIC_SURGE_PRICING)."
+  quote(kwh: Float!, priority: Boolean = false): Quote!
+
+  "Historial de transacciones distribuidas (SAGA) con su estado de compensacion."
+  transactions(limit: Int = 25, status: SagaStatus): [ChargeTransaction!]!
+  transaction(sagaId: ID!): ChargeTransaction
+}
+
+type Mutation {
+  """
+  Dispara la SAGA: 1) reserva la bahia, 2) cobra la billetera, 3) activa el cargador.
+  Nunca lanza error por un fallo de negocio: devuelve la transaccion con status
+  COMPENSATED (rollback aplicado) o FAILED, y el detalle de cada compensacion.
+  """
+  reserveAndActivateCharge(input: ReserveChargeInput!): ChargeTransaction!
+
+  "Cambia una flag del ambiente en caliente (sin redesplegar). Deshabilitado en prod."
+  setFeatureFlag(name: String!, enabled: Boolean!): FeatureFlag!
+
+  "Compensa una SAGA huerfana (no terminal). Lo invoca la auditoria de Prefect."
+  recoverTransaction(sagaId: ID!): ChargeTransaction
+
+  "Recarga saldo de una flota (demo)."
+  topUpWallet(fleetId: ID!, amountCents: Int!): Wallet!
+}
+
+input ReserveChargeInput {
+  fleetId: ID!
+  stationId: ID!
+  "Opcional: si se omite se asigna el mejor conector disponible."
+  connectorId: ID
+  "Energia a transferir (kWh)."
+  kwh: Float!
+  "Reserva prioritaria de ultra-carga (requiere ENABLE_FAST_CHARGE_BOOST)."
+  priority: Boolean = false
+  "Clave de idempotencia: repetir la mutacion con la misma clave no crea otra SAGA."
+  idempotencyKey: String
+}
+
+type EnvironmentInfo {
+  environment: String!
+  service: String!
+  version: String!
+  track: String!
+  flagAdminEnabled: Boolean!
+}
+
+type FeatureFlag {
+  name: String!
+  enabled: Boolean!
+  description: String
+  environment: String
+  updatedBy: String
+  updatedAt: String
+}
+
+enum ConnectorStatus {
+  AVAILABLE
+  RESERVED
+  CHARGING
+  OUT_OF_SERVICE
+}
+
+enum ConnectorTier {
+  STANDARD
+  ULTRA
+}
+
+type Station {
+  id: ID!
+  name: String!
+  city: String!
+  country: String!
+  lat: Float!
+  lng: Float!
+  connectors: [Connector!]!
+  availableConnectors: Int!
+  totalConnectors: Int!
+}
+
+type Connector {
+  id: ID!
+  stationId: ID!
+  type: String!
+  powerKw: Float!
+  tier: ConnectorTier!
+  status: ConnectorStatus!
+  reservedBy: ID
+  lockExpiresAt: Int
+}
+
+type TelemetryPoint {
+  stationId: ID!
+  connectorId: ID!
+  sagaId: ID!
+  timestamp: String!
+  powerKw: Float!
+  kwhDelivered: Float!
+  voltageV: Float!
+  currentA: Float!
+  temperatureC: Float!
+  socPercent: Int!
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
+type ChargingSession {
+  sagaId: ID!
+  stationId: ID!
+  connectorId: ID!
+  powerKw: Float!
+  kwhTarget: Float!
+  kwhDelivered: Float!
+  status: SessionStatus!
+  faultCode: String
+  startedAt: String!
+  updatedAt: String!
+}
+
+type Wallet {
+  fleetId: ID!
+  fleetName: String!
+  balanceCents: Int!
+  currency: String!
+  transactions(limit: Int = 20): [WalletTransaction!]!
+}
+
+enum WalletTransactionType {
+  CHARGE
+  REFUND
+}
+
+type WalletTransaction {
+  sagaId: ID!
+  type: WalletTransactionType!
+  amountCents: Int!
+  description: String!
+  createdAt: String!
+}
+
+type Quote {
+  kwh: Float!
+  tier: ConnectorTier!
+  basePriceCentsPerKwh: Int!
+  priceCentsPerKwh: Int!
+  surgeEnabled: Boolean!
+  isPeakHour: Boolean!
+  surgeApplied: Boolean!
+  surgeMultiplier: Float!
+  amountCents: Int!
+  currency: String!
+  localHour: Int!
+}
+
+enum SagaStatus {
+  STARTED
+  RESERVED
+  CHARGED
+  COMPLETED
+  COMPENSATING
+  COMPENSATED
+  FAILED
+}
+
+enum StepKind {
+  compensable
+  pivot
+  retriable
+}
+
+enum StepStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  COMPENSATING
+  COMPENSATED
+  COMPENSATION_FAILED
+}
+
+type SagaStep {
+  name: String!
+  kind: StepKind!
+  status: StepStatus!
+  attempts: Int!
+  startedAt: String
+  finishedAt: String
+  "Detalle del paso serializado como JSON."
+  detail: String
+  error: String
+}
+
+type Compensation {
+  step: String!
+  status: String!
+  attempts: Int!
+  "RELEASED | ALREADY_RELEASED | REFUNDED | ALREADY_REFUNDED | NOTHING_TO_*"
+  outcome: String
+  at: String!
+  error: String
+}
+
+type SagaError {
+  step: String!
+  code: String!
+  message: String!
+}
+
+type ChargeTransaction {
+  sagaId: ID!
+  "Igual al sagaId: buscar este valor en CloudWatch (correlation_id)."
+  correlationId: ID!
+  type: String!
+  status: SagaStatus!
+  environment: String!
+  fleetId: ID!
+  stationId: ID!
+  connectorId: ID
+  priority: Boolean!
+  kwh: Float!
+  amountCents: Int
+  quote: Quote
+  steps: [SagaStep!]!
+  compensations: [Compensation!]!
+  error: SagaError
+  createdAt: String!
+  updatedAt: String!
+  completedAt: String
+  durationMs: Int
+}

@@ -74,7 +74,7 @@ jobs:
     needs: promotion-guard
     runs-on: [self-hosted, aegisvolt]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Lint, build, imagenes Docker y esquema GraphQL
         run: ./scripts/ci/lint-build.ps1
 
@@ -83,7 +83,7 @@ jobs:
     needs: lint-build
     runs-on: [self-hosted, aegisvolt]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Pruebas unitarias (logica de negocio y compensaciones SAGA)
         run: ./scripts/ci/test.ps1 -Suite unit
 
@@ -92,7 +92,7 @@ jobs:
     needs: unit-tests
     runs-on: [self-hosted, aegisvolt]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Pruebas de integracion (DynamoDB en Floci + GraphQL)
         run: ./scripts/ci/test.ps1 -Suite integration -Environment $env:TARGET_ENV
 
@@ -101,7 +101,7 @@ jobs:
     needs: integration-tests
     runs-on: [self-hosted, aegisvolt]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Pruebas E2E (flujo completo Frontend/API)
         run: ./scripts/ci/test.ps1 -Suite e2e -Environment $env:TARGET_ENV
 
@@ -110,12 +110,12 @@ jobs:
     needs: promotion-guard
     runs-on: [self-hosted, aegisvolt]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: terraform plan sobre el workspace de la rama destino
         run: ./scripts/ci/terraform.ps1 -Action plan -Environment $env:TARGET_ENV
       - name: Adjuntar plan al run
         if: always() && hashFiles('infra/terraform/plan.txt') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: terraform-plan-${{ github.base_ref }}-pr${{ github.event.pull_request.number }}
           path: infra/terraform/plan.txt
