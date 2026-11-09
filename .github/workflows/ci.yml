@@ -1,0 +1,122 @@
+# =============================================================================
+# CI (Pre-Merge) - se ejecuta en cada Pull Request hacia dev, test o prod.
+#
+# Cada job de este archivo es un "required status check" del ruleset
+# (.github/rulesets/protected-env-branches.json). Si alguno falla, GitHub
+# deshabilita el boton de Merge.
+#
+# Ambiente objetivo = rama destino del PR (github.base_ref):
+#   PR feature/* -> dev   => TARGET_ENV=dev
+#   PR dev       -> test  => TARGET_ENV=test
+#   PR test      -> prod  => TARGET_ENV=prod
+# =============================================================================
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, test, prod]
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TARGET_ENV: ${{ github.base_ref }}
+  # Floci: emulador local de AWS. NO es AWS real.
+  AWS_ENDPOINT_URL: http://localhost:4566
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+
+defaults:
+  run:
+    shell: powershell
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Hace cumplir la cadena lineal de promocion (enunciado 3.2):
+  #   feature/* -> dev -> test -> prod
+  # Un PR con otro origen falla y no puede fusionarse.
+  # ---------------------------------------------------------------------------
+  promotion-guard:
+    name: promotion-guard
+    runs-on: [self-hosted, aegisvolt]
+    steps:
+      - name: Validar origen y destino del PR
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if ($env:HEAD_REPO -ne $env:THIS_REPO) {
+            Write-Error "PR desde un fork ($env:HEAD_REPO). No permitido."; exit 1
+          }
+          $allowed = switch ($env:BASE_REF) {
+            'dev'  { $env:HEAD_REF -match '^feature/.+' }
+            'test' { $env:HEAD_REF -eq 'dev' }
+            'prod' { $env:HEAD_REF -eq 'test' }
+            default { $false }
+          }
+          if (-not $allowed) {
+            Write-Error "Promocion invalida: '$env:HEAD_REF' -> '$env:BASE_REF'. Flujo permitido: feature/* -> dev -> test -> prod."
+            exit 1
+          }
+          Write-Host "Promocion valida: $env:HEAD_REF -> $env:BASE_REF"
+
+  lint-build:
+    name: lint-build
+    needs: promotion-guard
+    runs-on: [self-hosted, aegisvolt]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint, build, imagenes Docker y esquema GraphQL
+        run: ./scripts/ci/lint-build.ps1
+
+  unit-tests:
+    name: unit-tests
+    needs: lint-build
+    runs-on: [self-hosted, aegisvolt]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pruebas unitarias (logica de negocio y compensaciones SAGA)
+        run: ./scripts/ci/test.ps1 -Suite unit
+
+  integration-tests:
+    name: integration-tests
+    needs: unit-tests
+    runs-on: [self-hosted, aegisvolt]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pruebas de integracion (DynamoDB en Floci + GraphQL)
+        run: ./scripts/ci/test.ps1 -Suite integration -Environment $env:TARGET_ENV
+
+  e2e-tests:
+    name: e2e-tests
+    needs: integration-tests
+    runs-on: [self-hosted, aegisvolt]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pruebas E2E (flujo completo Frontend/API)
+        run: ./scripts/ci/test.ps1 -Suite e2e -Environment $env:TARGET_ENV
+
+  terraform-plan:
+    name: terraform-plan
+    needs: promotion-guard
+    runs-on: [self-hosted, aegisvolt]
+    steps:
+      - uses: actions/checkout@v4
+      - name: terraform plan sobre el workspace de la rama destino
+        run: ./scripts/ci/terraform.ps1 -Action plan -Environment $env:TARGET_ENV
+      - name: Adjuntar plan al run
+        if: always() && hashFiles('infra/terraform/plan.txt') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.base_ref }}-pr${{ github.event.pull_request.number }}
+          path: infra/terraform/plan.txt
+          retention-days: 14

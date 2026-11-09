@@ -1,0 +1,38 @@
+# Secretos
+.env
+.env.*
+!.env.example
+
+# Dependencias y builds
+node_modules/
+dist/
+build/
+coverage/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Terraform (el estado vive en S3, nunca en el repo)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan*
+plan.txt
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Runner self-hosted (si se instala dentro del repo por error)
+actions-runner/
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

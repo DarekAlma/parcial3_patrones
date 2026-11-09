@@ -1,0 +1,84 @@
+# =============================================================================
+# CD (Post-Merge) - se ejecuta cuando un PR se fusiona en dev, test o prod.
+#
+# Las ramas dev/test/prod no aceptan push directo (ruleset), por lo tanto un
+# evento "push" sobre ellas SOLO puede venir de un merge de PR.
+#
+# Deteccion dinamica del ambiente: github.ref_name es la rama que recibio el
+# merge. Ese valor se valida y se usa como:
+#   - workspace de Terraform  (terraform workspace select <ambiente>)
+#   - GitHub Environment      (historial de despliegues por ambiente)
+#   - namespace de Kubernetes (aegisvolt-<ambiente>)
+# Asi cada merge modifica UNICAMENTE el ambiente correspondiente.
+# =============================================================================
+name: CD
+
+on:
+  push:
+    branches: [dev, test, prod]
+
+# Un despliegue a la vez por ambiente; nunca se cancela uno en curso.
+concurrency:
+  group: cd-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_ENDPOINT_URL: http://localhost:4566
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+
+defaults:
+  run:
+    shell: powershell
+
+jobs:
+  resolve-env:
+    name: resolve-env
+    runs-on: [self-hosted, aegisvolt]
+    outputs:
+      environment: ${{ steps.detect.outputs.environment }}
+    steps:
+      - id: detect
+        name: Detectar rama destino del merge
+        env:
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          if ($env:TARGET_BRANCH -notin @('dev', 'test', 'prod')) {
+            Write-Error "Rama '$env:TARGET_BRANCH' no corresponde a un ambiente."; exit 1
+          }
+          "environment=$env:TARGET_BRANCH" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Merge detectado en '$env:TARGET_BRANCH' => workspace '$env:TARGET_BRANCH'"
+
+  terraform-apply:
+    name: terraform-apply
+    needs: resolve-env
+    runs-on: [self-hosted, aegisvolt]
+    environment: ${{ needs.resolve-env.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: terraform workspace select + apply -auto-approve
+        run: ./scripts/ci/terraform.ps1 -Action apply -Environment ${{ needs.resolve-env.outputs.environment }}
+
+  canary-deploy:
+    name: canary-deploy (${{ matrix.service }})
+    needs: [resolve-env, terraform-apply]
+    runs-on: [self-hosted, aegisvolt]
+    environment: ${{ needs.resolve-env.outputs.environment }}
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        service:
+          - station-reservation-service
+          - billing-wallet-service
+          - energy-dispatch-service
+          - graphql-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - name: Canary 20% -> health checks / CloudWatch -> 100% o rollback
+        run: ./scripts/ci/canary-deploy.ps1 -Environment ${{ needs.resolve-env.outputs.environment }} -Service ${{ matrix.service }} -Version ${{ github.sha }}
