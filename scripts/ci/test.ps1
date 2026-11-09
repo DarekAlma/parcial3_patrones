@@ -24,9 +24,10 @@ if (Test-NodeWorkspace) {
     $ran = $true
 }
 
-if ($Suite -eq 'unit' -and (Test-Path 'prefect\requirements.txt')) {
-    Invoke-Native python @('-m', 'pip', 'install', '-q', '-r', 'prefect\requirements.txt')
-    Invoke-Native python @('-m', 'pytest', 'prefect', '-q')
+# Reglas de auditoria de Prefect (logica pura, sin Prefect ni AWS).
+if ($Suite -eq 'unit' -and (Test-Path 'prefect\requirements-test.txt')) {
+    Invoke-Native python @('-m', 'pip', 'install', '-q', '--disable-pip-version-check', '-r', 'prefect\requirements-test.txt')
+    Invoke-Native python @('-m', 'pytest', 'prefect\tests', '-q', '--junitxml=reports/prefect-unit-junit.xml')
     $ran = $true
 }
 

@@ -7,8 +7,8 @@
 | 1. IaC, S3, Redes, DynamoDB | 30% | [sustentacion/01-infraestructura-iac.md](sustentacion/01-infraestructura-iac.md) | 6.1 (aislamiento test/prod, versiones del tfstate, recorrido de red por VPCE) |
 | 2. CI/CD, Git, Canary | 25% | [sustentacion/02-cicd-gobernanza.md](sustentacion/02-cicd-gobernanza.md) + [04-kubernetes-canary.md](sustentacion/04-kubernetes-canary.md) | 6.2 (push bloqueado, apply dinámico, métrica del canary) |
 | 3. Backend, GraphQL, SAGA, Flags | 25% | [sustentacion/03-backend-saga.md](sustentacion/03-backend-saga.md) | 6.3 (compensación en DynamoDB, idempotencia) |
-| 4. Observabilidad | 12% | `sustentacion/05-observabilidad-frontend.md` *(fase Prefect)* | 6.4 (Prefect + correlation_id en CloudWatch) |
-| 5. Frontend | 8% | `sustentacion/05-observabilidad-frontend.md` *(fase frontend)* | 6.4 (flag en dev sin redesplegar) |
+| 4. Observabilidad | 12% | [sustentacion/05-observabilidad.md](sustentacion/05-observabilidad.md) | 6.4 (Prefect + correlation_id en CloudWatch) |
+| 5. Frontend | 8% | `sustentacion/06-frontend.md` *(fase frontend)* | 6.4 (flag en dev sin redesplegar) |
 
 ## Referencia
 
@@ -64,4 +64,13 @@ npm run test:unit          # 28 pruebas, sin red
 npm run test:integration   # 25 pruebas, DynamoDB en Floci (tablas efimeras)
 npm run test:e2e           # 7 pruebas, 4 servicios como procesos + GraphQL
 npm run dev:stack          # servicios locales contra las tablas de dev -> http://localhost:8080/graphql
+```
+
+## Observabilidad (capa 4)
+
+```powershell
+docker compose -f prefect/docker-compose.yml up -d --build      # dashboard http://localhost:4200
+docker exec aegisvolt-prefect-prefect-observer-1 prefect deployment run "aegisvolt-observability/on-demand"
+.\scripts\demo	race-saga.ps1 -Environment dev -LastFailed      # SAGA fallida en CloudWatch por correlation_id
+.\scripts\demo\create-orphan-saga.ps1 -Environment dev          # SAGA huerfana para que Prefect la compense
 ```
