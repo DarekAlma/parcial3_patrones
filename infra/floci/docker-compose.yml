@@ -1,0 +1,38 @@
+# Floci: emulador local de AWS (NO es AWS real).
+#
+# Se ejecuta en modo "persistent" con un volumen nombrado para que el bucket
+# S3 del tfstate (y sus versiones), las tablas DynamoDB y los clusters EKS
+# sobrevivan a reinicios del contenedor. Con el modo por defecto (memory)
+# todo el estado de Terraform se perderia al reiniciar.
+#
+#   docker compose -f infra/floci/docker-compose.yml up -d
+#   docker compose -f infra/floci/docker-compose.yml down      # conserva datos
+#   docker compose -f infra/floci/docker-compose.yml down -v   # BORRA todo
+name: aegisvolt-floci
+
+services:
+  floci:
+    image: floci/floci:2.4.0
+    container_name: floci
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+      # Listeners TCP de los NLB internos (uno por ambiente). En Floci los
+      # sockets de los listeners ELBv2 se abren dentro del contenedor.
+      - "18080-18089:18080-18089"
+    environment:
+      FLOCI_STORAGE_MODE: persistent
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+    volumes:
+      - //var/run/docker.sock:/var/run/docker.sock
+      - floci-data:/app/data
+    networks:
+      - aegisvolt
+
+volumes:
+  floci-data:
+    name: aegisvolt-floci-data
+
+networks:
+  aegisvolt:
+    name: aegisvolt

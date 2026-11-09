@@ -12,6 +12,18 @@ if (Test-NodeWorkspace) {
     Write-Host 'Sin package.json en la raiz: se omite lint/build de Node.'
 }
 
+# Terraform: formato canonico y validacion sintactica/semantica (sin backend).
+foreach ($stack in 'infra\bootstrap', 'infra\terraform') {
+    $dir = Join-Path $RepoRoot $stack
+    if (-not (Get-ChildItem -Path $dir -Filter *.tf -ErrorAction SilentlyContinue)) { continue }
+    Push-Location $dir
+    try {
+        Invoke-Native terraform @('fmt', '-check', '-recursive', '-diff')
+        Invoke-Native terraform @('init', '-backend=false', '-input=false', '-no-color')
+        Invoke-Native terraform @('validate', '-no-color')
+    } finally { Pop-Location }
+}
+
 $dockerfiles = Get-ChildItem -Path services, graphql-gateway, frontend -Filter Dockerfile -Recurse -ErrorAction SilentlyContinue
 if (-not $dockerfiles) { Write-Host 'Sin Dockerfiles todavia: se omite docker build.' }
 foreach ($df in $dockerfiles) {
