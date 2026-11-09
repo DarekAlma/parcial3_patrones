@@ -56,3 +56,7 @@ output "private_api_invoke_url" {
 output "ecr_repository_urls" {
   value = module.ecr.repository_urls
 }
+
+output "frontend_target_group_arn" {
+  value = module.api_gateway.frontend_target_group_arn
+}

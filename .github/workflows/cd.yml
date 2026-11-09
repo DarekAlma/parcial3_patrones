@@ -90,6 +90,7 @@ jobs:
           - billing-wallet-service
           - energy-dispatch-service
           - graphql-gateway
+          - frontend
     steps:
       - uses: actions/checkout@v5
       - name: Canary 20% -> health checks / CloudWatch -> 100% o rollback

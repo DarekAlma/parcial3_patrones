@@ -60,7 +60,8 @@ function Get-KubectlOutput {
 function Get-ServiceImageTag {
     param([Parameter(Mandatory)][string]$Name)
     $svc = Get-AegisService $Name
-    $inputs = @($svc.Dir, 'packages/common', 'docker/node-service.Dockerfile', 'package-lock.json') | ForEach-Object {
+    $paths = if ($svc.Dockerfile) { @($svc.Dir) } else { @($svc.Dir, 'packages/common', 'docker/node-service.Dockerfile', 'package-lock.json') }
+    $inputs = $paths | ForEach-Object {
         (git -C $RepoRoot rev-parse "HEAD:$_").Trim()
     }
     $bytes = [Text.Encoding]::UTF8.GetBytes(($inputs -join '|'))

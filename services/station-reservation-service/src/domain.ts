@@ -78,8 +78,8 @@ export function pickCandidates(connectors: Connector[], priority: boolean, nowSe
 export const SEED_STATIONS: StationView[] = [
   {
     stationId: 'st-bog-norte',
-    name: 'Electrolinera Bogota Norte',
-    city: 'Bogota',
+    name: 'Electrolinera Bogotá Norte',
+    city: 'Bogotá',
     country: 'CO',
     lat: 4.7569,
     lng: -74.0466,
@@ -92,8 +92,8 @@ export const SEED_STATIONS: StationView[] = [
   },
   {
     stationId: 'st-med-poblado',
-    name: 'Hub Logistico Medellin El Poblado',
-    city: 'Medellin',
+    name: 'Hub Logístico Medellín El Poblado',
+    city: 'Medellín',
     country: 'CO',
     lat: 6.2087,
     lng: -75.5674,
@@ -106,7 +106,7 @@ export const SEED_STATIONS: StationView[] = [
   {
     stationId: 'st-cdmx-vallejo',
     name: 'Centro de Carga CDMX Vallejo',
-    city: 'Ciudad de Mexico',
+    city: 'Ciudad de México',
     country: 'MX',
     lat: 19.4883,
     lng: -99.1611,

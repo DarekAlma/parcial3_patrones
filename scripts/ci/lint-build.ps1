@@ -40,7 +40,7 @@ foreach ($stack in 'infra\bootstrap', 'infra\terraform') {
 }
 
 # Manifiestos Kubernetes: cada overlay debe renderizar (kustomize) y contener
-# los 8 Deployments (stable + canary de los 4 servicios) con su ConfigMap de ambiente.
+# los 10 Deployments (stable + canary de los 4 servicios y el frontend) con su ConfigMap de ambiente.
 foreach ($envName in $ValidEnvironments) {
     $overlay = Join-Path $RepoRoot "k8s\overlays\$envName"
     if (-not (Test-Path $overlay)) { continue }
@@ -49,7 +49,7 @@ foreach ($envName in $ValidEnvironments) {
     if ($LASTEXITCODE -ne 0) { throw "kubectl kustomize fallo para $envName" }
     $text = Get-Content $rendered -Raw
     $deployments = ([regex]::Matches($text, '(?m)^kind: Deployment')).Count
-    if ($deployments -ne 8) { throw "Overlay ${envName}: se esperaban 8 Deployments y hay $deployments" }
+    if ($deployments -ne 10) { throw "Overlay ${envName}: se esperaban 10 Deployments (5 workloads x stable+canary) y hay $deployments" }
     if ($text -notmatch "AEGIS_ENV: $envName") { throw "Overlay ${envName}: ConfigMap sin AEGIS_ENV=$envName" }
     Write-Host "k8s/overlays/$envName OK ($deployments Deployments)"
 }

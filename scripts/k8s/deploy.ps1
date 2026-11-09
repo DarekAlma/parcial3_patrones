@@ -61,17 +61,39 @@ foreach ($svc in $AegisServices) {
     Invoke-Kubectl -Kubeconfig $kc -Arguments @('rollout', 'status', "deployment/$($svc.Name)", '--timeout=240s')
 }
 
-# 4. Targets del NLB: nodos del cluster en el NodePort del gateway
-$tg = (aws elbv2 describe-target-groups --names "aegisvolt-$Environment-tg-graphql" --query 'TargetGroups[0].TargetGroupArn' --output text).Trim()
+# 4. Config del frontend: URL del API Gateway de cada ambiente (comparacion de
+#    flags en vivo). El directorio montado se actualiza sin reiniciar los pods.
+$peers = [ordered]@{}
+foreach ($e in $ValidEnvironments) {
+    $apiId = "$(aws apigatewayv2 get-apis --query "Items[?Name=='aegisvolt-$e'].ApiId | [0]" --output text)".Trim()
+    if ($apiId -and $apiId -ne 'None') { $peers[$e] = "http://$apiId.execute-api.localhost.floci.io:4566" }
+}
+$cmFile = Join-Path ([IO.Path]::GetTempPath()) "aegisvolt-$Environment-frontend-config.json"
+[IO.File]::WriteAllText($cmFile, (@{ peers = $peers } | ConvertTo-Json -Compress))
+$cmYaml = (& kubectl --kubeconfig $kc -n aegisvolt create configmap frontend-config "--from-file=app-config.json=$cmFile" --dry-run=client -o yaml) -join "`n"
+$cmYamlFile = "$cmFile.yaml"
+[IO.File]::WriteAllText($cmYamlFile, $cmYaml)
+Invoke-Native kubectl @('--kubeconfig', $kc, 'apply', '-f', $cmYamlFile)
+
+# 5. Targets del NLB: nodos del cluster en el NodePort de cada workload expuesto
+#    (graphql-gateway 30080, frontend 30081).
 # "$(...)": una salida vacia de un comando nativo es AutomationNull y no admite .Trim().
 $nodeIps = @("$(kubectl --kubeconfig $kc get nodes -o "jsonpath={.items[*].status.addresses[?(@.type=='InternalIP')].address}")".Trim() -split '\s+' | Where-Object { $_ })
-$registered = @("$(aws elbv2 describe-target-health --target-group-arn $tg --query 'TargetHealthDescriptions[].Target.Id' --output text)".Trim() -split '\s+' | Where-Object { $_ -and $_ -ne 'None' })
 if (-not $nodeIps) { throw 'No se pudieron obtener las IPs de los nodos del cluster' }
-foreach ($ip in $nodeIps) {
-    if ($registered -notcontains $ip) { Invoke-Native aws @('elbv2', 'register-targets', '--target-group-arn', $tg, '--targets', "Id=$ip,Port=30080") }
-}
-foreach ($ip in $registered) {
-    if ($nodeIps -notcontains $ip) { Invoke-Native aws @('elbv2', 'deregister-targets', '--target-group-arn', $tg, '--targets', "Id=$ip,Port=30080") }
+foreach ($binding in @(@{ Tg = 'tg-graphql'; Port = 30080 }, @{ Tg = 'tg-frontend'; Port = 30081 })) {
+    $tg = "$(aws elbv2 describe-target-groups --names "aegisvolt-$Environment-$($binding.Tg)" --query 'TargetGroups[0].TargetGroupArn' --output text)".Trim()
+    if (-not $tg -or $tg -eq 'None') { Write-Host "Target group $($binding.Tg) inexistente: se omite"; continue }
+    $registered = @("$(aws elbv2 describe-target-health --target-group-arn $tg --query 'TargetHealthDescriptions[].Target.Id' --output text)".Trim() -split '\s+' | Where-Object { $_ -and $_ -ne 'None' })
+    foreach ($ip in $nodeIps) {
+        if ($registered -notcontains $ip) { Invoke-Native aws @('elbv2', 'register-targets', '--target-group-arn', $tg, '--targets', "Id=$ip,Port=$($binding.Port)") }
+    }
+    foreach ($ip in $registered) {
+        if ($nodeIps -notcontains $ip) { Invoke-Native aws @('elbv2', 'deregister-targets', '--target-group-arn', $tg, '--targets', "Id=$ip,Port=$($binding.Port)") }
+    }
 }
 
-Write-Summary (@("## Kubernetes ``aegisvolt-$Environment``", '', "NLB targets: $($nodeIps -join ', ') : 30080", '') + $rows)
+Write-Summary (@(
+        "## Kubernetes ``aegisvolt-$Environment``", '',
+        "NLB targets: $($nodeIps -join ', ') : 30080 (graphql) y 30081 (frontend)",
+        "UI del ambiente: $($peers[$Environment])/", ''
+    ) + $rows)

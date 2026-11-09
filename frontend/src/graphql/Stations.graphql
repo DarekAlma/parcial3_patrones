@@ -1,0 +1,20 @@
+query Stations {
+  stations {
+    id
+    name
+    city
+    country
+    availableConnectors
+    totalConnectors
+    connectors {
+      id
+      stationId
+      type
+      powerKw
+      tier
+      status
+      reservedBy
+      lockExpiresAt
+    }
+  }
+}

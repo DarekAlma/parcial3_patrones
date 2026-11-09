@@ -10,3 +10,4 @@ resources:
   - billing-wallet-service.yaml
   - energy-dispatch-service.yaml
   - graphql-gateway.yaml
+  - frontend.yaml

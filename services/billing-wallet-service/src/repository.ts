@@ -222,6 +222,15 @@ export class WalletRepository {
         created++;
       } catch (err) {
         if (!isConditionalCheckFailed(err)) throw err;
+        // Ya existe: solo se actualiza el nombre visible, nunca el saldo.
+        await this.ddb.send(
+          new UpdateCommand({
+            TableName: this.table,
+            Key: { pk: walletPk(w.fleetId), sk: 'META' },
+            UpdateExpression: 'SET fleetName = :n',
+            ExpressionAttributeValues: { ':n': w.fleetName },
+          }),
+        );
       }
     }
     return created;
@@ -270,8 +279,8 @@ function toTxn(item: WalletTransaction): WalletTransaction {
 }
 
 export const SEED_WALLETS: Omit<Wallet, 'updatedAt'>[] = [
-  { fleetId: 'fleet-andina', fleetName: 'Logistica Andina Express', balanceCents: 50_000, currency: 'USD' },
-  { fleetId: 'fleet-pacifico', fleetName: 'Reparto Pacifico Ultima Milla', balanceCents: 20_000, currency: 'USD' },
+  { fleetId: 'fleet-andina', fleetName: 'Logística Andina Express', balanceCents: 50_000, currency: 'USD' },
+  { fleetId: 'fleet-pacifico', fleetName: 'Reparto Pacífico Última Milla', balanceCents: 20_000, currency: 'USD' },
   // Saldo bajo a proposito: demuestra la compensacion del Paso 2 (fondos insuficientes).
   { fleetId: 'fleet-caribe', fleetName: 'Caribe Delivery (saldo bajo)', balanceCents: 500, currency: 'USD' },
 ];

@@ -1,0 +1,97 @@
+{
+  "title": "AegisVolt: mundo visual del panel de operación",
+  "question": "El sorteo asignó «Surtidor y ticket térmico». Quédate con él, toma una alternativa o vuelve a sortear.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Surtidor y ticket térmico",
+      "kicker": "THE ROLL",
+      "lineage": "Surtidores de estación de servicio latinoamericana y su impresora térmica de comprobantes",
+      "thesis": "Cada cargador es un surtidor con su display de segmentos, y cada SAGA sale impresa como un ticket que, si falla, se reversa renglón por renglón.",
+      "palette": ["#1E2A33", "#E9E4D6", "#F2C230", "#D23B2A", "#7BE495"],
+      "materials": ["chapa esmaltada del surtidor", "display de 7 segmentos", "papel térmico con tinta que se desvanece"],
+      "viewport": "Fila de surtidores (estaciones) con conectores como mangueras y displays de kW en vivo; a la derecha la impresora con el ticket de la última SAGA saliendo en vivo.",
+      "risk": "Si los surtidores se dibujan como ilustración decorativa y no como controles reales, se vuelve un disfraz temático.",
+      "raised": [
+        { "from": "challenger-feed", "raise": "La estación seleccionada ocupa el escenario completo y las demás esperan en una fila lateral, listas a un clic." },
+        { "from": "challenger-centre-rail", "raise": "Los estados son marcas impresas: renglón tachado = revertido, recuadro = en curso, relleno = confirmado, sin depender del color." },
+        { "from": "challenger-ikeda", "raise": "El fallo de hardware invierte el ticket entero (impresión en negativo): un único cambio de estado inconfundible, sin glows." }
+      ]
+    },
+    {
+      "id": "model-pick",
+      "label": "Tablero de despacho de terminal",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Tableros LED de salidas en terminales de transporte de Bogotá y CDMX",
+      "thesis": "La disponibilidad de bahías como un tablero de salidas: filas que cambian de estado en vivo.",
+      "palette": ["#0B0F14", "#F5B700", "#E8E8E2", "#C0392B"],
+      "materials": ["matriz de LEDs ámbar", "carcasa negra mate"],
+      "viewport": "Tablero a pantalla completa con estaciones y conectores como filas de salidas y el estado parpadeando al cambiar.",
+      "risk": "Es la dirección más conocida y la que más se parece a un dashboard oscuro estándar."
+    },
+    {
+      "id": "challenger-feed",
+      "label": "Feed vertical a pantalla completa",
+      "verdict": "declined",
+      "lineage": "feeds de video vertical",
+      "thesis": "Un elemento ocupa toda la pantalla y el siguiente espera a un deslizamiento.",
+      "palette": ["#000000", "#FFFFFF"],
+      "materials": ["media a sangre", "glifos blancos"],
+      "viewport": "Una estación por pantalla, acciones en riel derecho.",
+      "case": "Falla en claridad: un operador necesita ver muchas bahías a la vez.",
+      "kept": "La estación seleccionada es dueña del escenario; las demás esperan precargadas.",
+      "risk": "Oculta la vista general que el operador necesita."
+    },
+    {
+      "id": "challenger-centre-rail",
+      "label": "Edición con riel central",
+      "verdict": "declined",
+      "lineage": "ediciones de referencia con aparato crítico",
+      "thesis": "Dos columnas densas alrededor de un riel de claves impresas.",
+      "palette": ["#1A1A1A", "#C2361D", "#EFE8DA"],
+      "materials": ["reglas de 1 px", "tinta férrica"],
+      "viewport": "Columnas de texto con detentes en el riel.",
+      "case": "Falla en identificación: los despachadores no leen aparato crítico.",
+      "kept": "Los estados son marcas impresas precisas (tachado, recuadro, relleno), sin depender del color.",
+      "risk": "Demasiado libresco para operación."
+    },
+    {
+      "id": "challenger-ikeda",
+      "label": "Campo de datos blanco y negro",
+      "verdict": "declined",
+      "lineage": "instalaciones datamatics",
+      "thesis": "Barras y números en blanco y negro puro que se invierten en un cuadro.",
+      "palette": ["#000000", "#FFFFFF"],
+      "materials": ["barras hairline", "monoespaciada"],
+      "viewport": "Muro de barras de telemetría.",
+      "case": "Falla en claridad de producto: lo abstracto oculta qué bahía está libre.",
+      "kept": "Compromiso total con un cambio de estado: la inversión completa marca el fallo.",
+      "risk": "Ilegible para tareas."
+    },
+    {
+      "id": "challenger-jcard",
+      "label": "J-card de casete",
+      "verdict": "declined",
+      "lineage": "carátulas de mixtape",
+      "thesis": "Listas manuscritas con tiempos alineados a la derecha.",
+      "palette": ["#2340A8", "#FFFFFF", "#C8102E"],
+      "materials": ["bolígrafo", "inlay rayado"],
+      "viewport": "Lado A y lado B de una lista.",
+      "case": "Falla en identificación con el sector energético.",
+      "kept": "Cada renglón lleva su tiempo exacto alineado a la derecha, como un tracklist cronometrado.",
+      "risk": "Nostálgico sin relación con el producto."
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "canon": true,
+  "canonCard": {
+    "label": "Dashboard operativo estándar",
+    "thesis": "Barra lateral, tarjetas KPI, tablas y pastillas de estado, ejecutadas con oficio.",
+    "palette": ["#0F172A", "#F8FAFC", "#22C55E"],
+    "materials": ["grid de tarjetas", "tablas de datos"],
+    "viewport": "Sidebar con secciones, KPIs arriba y tabla de estaciones debajo.",
+    "risk": "Indistinguible de cualquier panel SaaS por diseño."
+  },
+  "steer": true,
+  "buildPath": { "value": "code", "toggle": false }
+}

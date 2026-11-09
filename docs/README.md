@@ -8,7 +8,7 @@
 | 2. CI/CD, Git, Canary | 25% | [sustentacion/02-cicd-gobernanza.md](sustentacion/02-cicd-gobernanza.md) + [04-kubernetes-canary.md](sustentacion/04-kubernetes-canary.md) | 6.2 (push bloqueado, apply dinámico, métrica del canary) |
 | 3. Backend, GraphQL, SAGA, Flags | 25% | [sustentacion/03-backend-saga.md](sustentacion/03-backend-saga.md) | 6.3 (compensación en DynamoDB, idempotencia) |
 | 4. Observabilidad | 12% | [sustentacion/05-observabilidad.md](sustentacion/05-observabilidad.md) | 6.4 (Prefect + correlation_id en CloudWatch) |
-| 5. Frontend | 8% | `sustentacion/06-frontend.md` *(fase frontend)* | 6.4 (flag en dev sin redesplegar) |
+| 5. Frontend | 8% | [sustentacion/06-frontend.md](sustentacion/06-frontend.md) | 6.4 (flag en dev sin redesplegar) |
 
 ## Referencia
 
@@ -73,4 +73,14 @@ docker compose -f prefect/docker-compose.yml up -d --build      # dashboard http
 docker exec aegisvolt-prefect-prefect-observer-1 prefect deployment run "aegisvolt-observability/on-demand"
 .\scripts\demo	race-saga.ps1 -Environment dev -LastFailed      # SAGA fallida en CloudWatch por correlation_id
 .\scripts\demo\create-orphan-saga.ps1 -Environment dev          # SAGA huerfana para que Prefect la compense
+```
+
+## Frontend (capa 5)
+
+```powershell
+# UI de cada ambiente (mismo API Gateway que /graphql)
+aws apigatewayv2 get-apis --query "Items[].{ambiente:Name,id:ApiId}" --output table
+#   http://<id>.execute-api.localhost.floci.io:4566/
+# Desarrollo local contra el API de dev
+$env:AEGIS_API="http://<id-dev>.execute-api.localhost.floci.io:4566"; npm --prefix frontend run dev
 ```

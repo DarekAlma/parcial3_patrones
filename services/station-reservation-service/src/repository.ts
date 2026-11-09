@@ -299,7 +299,21 @@ export class ReservationRepository {
     let created = 0;
     for (const s of stations) {
       const { connectors, ...meta } = s;
-      created += await this.putIfAbsent({ pk: stationPk(s.stationId), sk: META, gsi1pk: 'STATION', gsi1sk: s.stationId, ...meta });
+      const isNew = await this.putIfAbsent({ pk: stationPk(s.stationId), sk: META, gsi1pk: 'STATION', gsi1sk: s.stationId, ...meta });
+      created += isNew;
+      if (!isNew) {
+        // Metadatos descriptivos (nombre, ciudad) siempre al dia; el estado de los
+        // conectores nunca se toca desde el seed.
+        await this.ddb.send(
+          new UpdateCommand({
+            TableName: this.table,
+            Key: { pk: stationPk(s.stationId), sk: META },
+            UpdateExpression: 'SET #n = :n, city = :c, country = :co',
+            ExpressionAttributeNames: { '#n': 'name' },
+            ExpressionAttributeValues: { ':n': meta.name, ':c': meta.city, ':co': meta.country },
+          }),
+        );
+      }
       for (const c of connectors) {
         created += await this.putIfAbsent({
           pk: stationPk(c.stationId),
