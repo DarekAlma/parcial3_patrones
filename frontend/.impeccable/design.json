@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-09T00:00:00Z",
+  "title": "Design System: AegisVolt",
+  "extensions": {
+    "colorMeta": {
+      "signal": { "role": "primary", "displayName": "Amarillo de servicio", "canonical": "#f2c230", "tonalRamp": ["#2e2405", "#5a460a", "#8a6b0f", "#c99a12", "#f2c230", "#ffd75a", "#ffe58f", "#fff4cc"] },
+      "signal-deep": { "role": "primary", "displayName": "Amarillo de servicio profundo", "canonical": "#c99a12" },
+      "signal-ink": { "role": "primary", "displayName": "Tinta sobre amarillo", "canonical": "#1a1405" },
+      "reverso": { "role": "secondary", "displayName": "Rojo de reverso", "canonical": "#c8352a", "tonalRamp": ["#2a0b08", "#3a1612", "#6b1a13", "#9c2219", "#c8352a", "#e2513f", "#ff8a7a", "#ffd9d3"] },
+      "reverso-bright": { "role": "secondary", "displayName": "Rojo de sello", "canonical": "#e2513f" },
+      "env-test": { "role": "secondary", "displayName": "Azul de pruebas", "canonical": "#2f7fb3", "tonalRamp": ["#071a26", "#10334a", "#1a5277", "#2f7fb3", "#5a9dc8", "#8fbcda", "#c3dbeb", "#e9f1f6"] },
+      "lcd-on": { "role": "tertiary", "displayName": "Verde fósforo", "canonical": "#8df0a8", "tonalRamp": ["#0c1410", "#1d3a26", "#2f5d3e", "#4f8a62", "#6cbf85", "#8df0a8", "#b9f6c9", "#e3fbe9"] },
+      "lcd-off": { "role": "tertiary", "displayName": "Segmento apagado", "canonical": "rgba(141, 240, 168, 0.09)" },
+      "lcd-dim": { "role": "tertiary", "displayName": "Fósforo atenuado", "canonical": "#4f8a62" },
+      "lcd-bg": { "role": "neutral", "displayName": "Vidrio LCD", "canonical": "#0c1410" },
+      "enamel": { "role": "neutral", "displayName": "Esmalte", "canonical": "#1d2b36", "tonalRamp": ["#0f1820", "#1d2b36", "#263845", "#33495a", "#4f6676", "#7d8a90", "#a9b8c1", "#e8ecea"] },
+      "enamel-2": { "role": "neutral", "displayName": "Esmalte 2", "canonical": "#263845" },
+      "enamel-3": { "role": "neutral", "displayName": "Esmalte 3", "canonical": "#33495a" },
+      "enamel-edge": { "role": "neutral", "displayName": "Borde de chapa", "canonical": "#0f1820" },
+      "enamel-ink": { "role": "neutral", "displayName": "Tinta de chapa", "canonical": "#e8ecea" },
+      "enamel-ink-2": { "role": "neutral", "displayName": "Tinta de chapa secundaria", "canonical": "#a9b8c1" },
+      "forecourt": { "role": "neutral", "displayName": "Concreto", "canonical": "#c6ccc9", "tonalRamp": ["#2b3439", "#4a5357", "#6c7579", "#8f9895", "#b3bab7", "#c6ccc9", "#dde1df", "#f0f2f1"] },
+      "forecourt-joint": { "role": "neutral", "displayName": "Junta de concreto", "canonical": "#b3bab7" },
+      "forecourt-ink": { "role": "neutral", "displayName": "Tinta de patio", "canonical": "#2b3439" },
+      "paper": { "role": "neutral", "displayName": "Papel térmico", "canonical": "#f3f0e8", "tonalRamp": ["#1b1b19", "#3a3935", "#6a675f", "#a9a59a", "#c9c5b9", "#e3dfd3", "#f3f0e8", "#fbfaf6"] },
+      "ink": { "role": "neutral", "displayName": "Tinta", "canonical": "#1b1b19" },
+      "ink-faded": { "role": "neutral", "displayName": "Tinta desvanecida", "canonical": "#6a675f" },
+      "paper-negative": { "role": "neutral", "displayName": "Papel negativo", "canonical": "#141412" },
+      "idle": { "role": "neutral", "displayName": "Reposo", "canonical": "#7d8a90" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Nombre de la estación en la corona del surtidor." },
+      "env-code": { "displayName": "Código de ambiente", "purpose": "DEV / TEST / PROD en la placa colgada de la marquesina." },
+      "lcd-xl": { "displayName": "LCD grande", "purpose": "Lectura principal del vidrio del surtidor." },
+      "lcd-md": { "displayName": "LCD mediano", "purpose": "Lecturas secundarias del vidrio." },
+      "title": { "displayName": "Title", "purpose": "Encabezados de panel, número de manguera, teclas, nombre del ambiente." },
+      "body": { "displayName": "Body", "purpose": "Texto corriente con cifras tabulares." },
+      "label": { "displayName": "Label", "purpose": "Leyendas de grupo, rótulos de LCD, encabezados de tabla, estados." },
+      "ticket": { "displayName": "Ticket", "purpose": "Todo el papel térmico: ticket y rollo de comprobantes." }
+    },
+    "shadows": [
+      { "name": "body", "value": "0 18px 30px -18px rgba(9, 16, 22, 0.55), 0 2px 0 rgba(255, 255, 255, 0.06) inset", "purpose": "Cuerpos de chapa sobre el concreto: surtidor, impresora, rollo, puerta de servicio, tablero de lámparas." },
+      { "name": "key", "value": "0 3px 0 var(--enamel-edge), 0 6px 10px -6px rgba(0, 0, 0, 0.6)", "purpose": "Pared inferior de tecla presionable; :active la consume con translateY(3px)." },
+      { "name": "key-authorize", "value": "0 5px 0 var(--signal-deep), 0 14px 18px -10px rgba(0, 0, 0, 0.7)", "purpose": "Pared del botón AUTORIZAR; :active baja 5px." },
+      { "name": "glass", "value": "0 0 0 4px var(--enamel-edge), 0 0 0 6px var(--enamel-3), inset 0 10px 18px -12px rgba(0, 0, 0, 0.9)", "purpose": "Vidrio LCD hundido con bisel doble." },
+      { "name": "hanging-sign", "value": "0 14px 22px -12px rgba(9, 16, 22, 0.55)", "purpose": "Placa de ambiente colgada." },
+      { "name": "paper", "value": "drop-shadow(0 12px 14px rgba(9, 16, 22, 0.35))", "purpose": "Filtro sobre la salida de la impresora para respetar el borde dentado." },
+      { "name": "selected-inset", "value": "inset 0 0 0 1px var(--signal)", "purpose": "Tarjeta de flota seleccionada." },
+      { "name": "chosen-top", "value": "inset 0 3px 0 var(--signal)", "purpose": "Manguera elegida." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Desplazamientos de surtidor, perilla, cuchilla de llave y renglón del rollo." },
+      { "name": "key-press", "value": "0.12s", "purpose": "Recorrido de tecla y botón AUTORIZAR." },
+      { "name": "lamp-beat", "value": "2s steps(2, jump-none) infinite", "purpose": "Parpadeo de la lámpara de señal en vivo; 1s para el paso de SAGA en curso." },
+      { "name": "flow", "value": "0.9s linear infinite", "purpose": "Barras de la marca de conector cargando." },
+      { "name": "feed", "value": "1.5s steps(26, end)", "purpose": "Avance del ticket al imprimirse." }
+    ],
+    "breakpoints": [
+      { "name": "narrow", "value": "520px" },
+      { "name": "single-column", "value": "960px" },
+      { "name": "compact-keypad", "value": "1180px" },
+      { "name": "container", "value": "1480px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón Autorizar",
+      "kind": "button",
+      "refersTo": "button-authorize",
+      "description": "Acción primaria del surtidor: dispara la SAGA de reserva y carga.",
+      "html": "<button class=\"ds-authorize\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\" stroke-linejoin=\"miter\" aria-hidden=\"true\"><path d=\"M13 3 6 13h5l-1 8 7-10h-5z\"/></svg>Autorizar y cargar</button>",
+      "css": ".ds-authorize { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 70px; padding: 0 24px; border: 0; border-radius: 12px; background: linear-gradient(#ffd75a, var(--signal, #f2c230)); color: var(--signal-ink, #1a1405); font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; cursor: pointer; box-shadow: 0 5px 0 var(--signal-deep, #c99a12), 0 14px 18px -10px rgba(0,0,0,0.7); transition: transform 0.12s, box-shadow 0.12s, filter 0.2s; } .ds-authorize:active { transform: translateY(5px); box-shadow: 0 0 0 var(--signal-deep, #c99a12), 0 6px 10px -8px rgba(0,0,0,0.7); } .ds-authorize:focus-visible { outline: 3px solid var(--signal, #f2c230); outline-offset: 3px; } .ds-authorize:disabled { filter: grayscale(0.85) brightness(0.7); cursor: not-allowed; }"
+    },
+    {
+      "name": "Tecla de energía",
+      "kind": "button",
+      "refersTo": "key",
+      "description": "Tecla física de preselección de kWh; encendida pasa a amarillo.",
+      "html": "<div class=\"ds-keys\"><button class=\"ds-key\">10<small>kWh</small></button><button class=\"ds-key ds-key-on\" aria-pressed=\"true\">20<small>kWh</small></button><button class=\"ds-key\">40<small>kWh</small></button></div>",
+      "css": ".ds-keys { display: grid; grid-template-columns: repeat(3, 64px); gap: 8px; padding: 16px; background: #1d2b36; } .ds-key { display: grid; place-items: center; padding: 10px 0 8px; border: 0; border-radius: 8px; background: var(--enamel-3, #33495a); color: var(--enamel-ink, #e8ecea); font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif; font-weight: 700; font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 3px 0 var(--enamel-edge, #0f1820), 0 6px 10px -6px rgba(0,0,0,0.6); transition: transform 0.12s, box-shadow 0.12s; } .ds-key small { font-size: 11px; letter-spacing: 0.08em; color: var(--enamel-ink-2, #a9b8c1); } .ds-key:active { transform: translateY(3px); box-shadow: 0 0 0 var(--enamel-edge, #0f1820); } .ds-key:focus-visible { outline: 3px solid var(--signal, #f2c230); outline-offset: 3px; } .ds-key-on { background: linear-gradient(#ffd75a, var(--signal, #f2c230)); color: var(--signal-ink, #1a1405); box-shadow: 0 3px 0 var(--signal-deep, #c99a12), 0 6px 10px -6px rgba(0,0,0,0.6); } .ds-key-on small { color: var(--signal-ink, #1a1405); }"
+    },
+    {
+      "name": "Display LCD",
+      "kind": "custom",
+      "refersTo": "lcd-glass",
+      "description": "Vidrio de siete segmentos con 8 fantasma bajo cada dígito.",
+      "html": "<div class=\"ds-glass\"><div class=\"ds-lcd\"><span class=\"ds-lcd-label\">Total estimado</span><span class=\"ds-lcd-digits\"><span class=\"ds-lcd-ghost\">888.88</span><span class=\"ds-lcd-value\">  7.00</span></span><span class=\"ds-lcd-unit\">USD</span></div></div>",
+      "css": ".ds-glass { padding: 18px 22px 16px; border-radius: 10px; background: var(--lcd-bg, #0c1410); box-shadow: 0 0 0 4px var(--enamel-edge, #0f1820), 0 0 0 6px var(--enamel-3, #33495a), inset 0 10px 18px -12px rgba(0,0,0,0.9); } .ds-lcd { display: inline-grid; grid-template-columns: auto auto; grid-template-areas: 'label label' 'digits unit'; align-items: end; column-gap: 8px; color: var(--lcd-on, #8df0a8); } .ds-lcd-label { grid-area: label; margin-bottom: 4px; font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lcd-dim, #4f8a62); } .ds-lcd-digits { grid-area: digits; position: relative; font-family: 'DSEG7', ui-monospace, monospace; font-weight: 700; font-size: 64px; line-height: 1; white-space: pre; } .ds-lcd-ghost { color: var(--lcd-off, rgba(141,240,168,0.09)); } .ds-lcd-value { position: absolute; inset: 0; } .ds-lcd-unit { grid-area: unit; font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.04em; color: var(--lcd-dim, #4f8a62); }"
+    },
+    {
+      "name": "Panel de mangueras",
+      "kind": "card",
+      "refersTo": "hose",
+      "description": "Conectores como radios dentro de un panel único con costuras de 1px.",
+      "html": "<div class=\"ds-bay\" role=\"radiogroup\"><button class=\"ds-hose\" role=\"radio\" aria-checked=\"false\"><span class=\"ds-hose-id\">C1</span><span class=\"ds-hose-power\">150 kW · CCS2</span><span class=\"ds-hose-status\"><i class=\"ds-mark ds-mark-available\"></i>Libre</span></button><button class=\"ds-hose ds-hose-chosen\" role=\"radio\" aria-checked=\"true\"><span class=\"ds-hose-id\">C3</span><span class=\"ds-hose-power\">350 kW · CCS2</span><span class=\"ds-hose-status\"><i class=\"ds-mark ds-mark-reserved\"></i>Reservado</span></button></div>",
+      "css": ".ds-bay { display: grid; grid-template-columns: repeat(2, 160px); gap: 1px; border-radius: 10px; overflow: hidden; background: var(--enamel-edge, #0f1820); } .ds-hose { display: grid; gap: 6px; padding: 14px 14px 12px; border: 0; background: var(--enamel-2, #263845); color: var(--enamel-ink, #e8ecea); text-align: left; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; } .ds-hose:hover { background: var(--enamel-3, #33495a); } .ds-hose:focus-visible { outline: 3px solid var(--signal, #f2c230); outline-offset: 3px; } .ds-hose-chosen { background: var(--enamel-3, #33495a); box-shadow: inset 0 3px 0 var(--signal, #f2c230); } .ds-hose-id { font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif; font-weight: 700; font-size: 22px; } .ds-hose-power { font-size: 14px; color: var(--enamel-ink-2, #a9b8c1); } .ds-hose-status { display: flex; align-items: center; gap: 8px; font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.03em; text-transform: uppercase; } .ds-mark { display: inline-block; width: 14px; height: 14px; } .ds-mark-available { border-radius: 50%; background: var(--lcd-on, #8df0a8); } .ds-mark-reserved { border: 3px solid var(--signal, #f2c230); }"
+    },
+    {
+      "name": "Tarjetas de flota",
+      "kind": "input",
+      "refersTo": "fleet-card",
+      "description": "Grupo de radios con la etiqueta completa clicable y selección por línea interior.",
+      "html": "<fieldset class=\"ds-fleets\"><label class=\"ds-fleet ds-fleet-on\"><input type=\"radio\" name=\"f\" checked><span>Logística Andina Express</span><b>US$ 486,00</b></label><label class=\"ds-fleet\"><input type=\"radio\" name=\"f\"><span>Caribe Delivery</span><b>US$ 5,00</b></label></fieldset>",
+      "css": ".ds-fleets { display: flex; flex-direction: column; gap: 1px; width: 320px; margin: 0; padding: 0; border: 0; border-radius: 10px; overflow: hidden; background: var(--enamel-edge, #0f1820); } .ds-fleet { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 14px 14px 12px; background: var(--enamel-2, #263845); color: var(--enamel-ink, #e8ecea); font-weight: 600; font-size: 15px; cursor: pointer; } .ds-fleet input { position: absolute; opacity: 0; pointer-events: none; } .ds-fleet b { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 14px; color: var(--lcd-on, #8df0a8); } .ds-fleet:focus-within { outline: 3px solid var(--signal, #f2c230); outline-offset: 2px; } .ds-fleet-on { background: var(--enamel-3, #33495a); box-shadow: inset 0 0 0 1px var(--signal, #f2c230); }"
+    },
+    {
+      "name": "Ticket térmico",
+      "kind": "custom",
+      "refersTo": "ticket",
+      "description": "Papel monoespaciado con corte dentado donde se imprime la SAGA.",
+      "html": "<div class=\"ds-ticket\"><p class=\"ds-ticket-title\">AEGIS<b>VOLT</b></p><dl class=\"ds-lines\"><div><dt>Energía</dt><dd>60.0 kWh</dd></div><div><dt>Tarifa</dt><dd>US$ 0,35/kWh</dd></div></dl><p class=\"ds-rule\">Transacción distribuida</p><p class=\"ds-total\"><span>Total</span><span>US$ 21,00</span></p></div>",
+      "css": ".ds-ticket { width: 300px; padding: 26px 22px 34px; background: var(--paper, #f3f0e8); color: var(--ink, #1b1b19); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.55; -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 10px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 10px repeat-x; mask: linear-gradient(#000 0 0) top / 100% calc(100% - 10px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 10px repeat-x; } .ds-ticket p { margin: 0; } .ds-ticket-title { text-align: center; font-size: 22px; letter-spacing: 0.04em; padding-bottom: 12px; border-bottom: 1px dashed var(--ink-faded, #6a675f); } .ds-lines { margin: 12px 0; } .ds-lines div { display: flex; justify-content: space-between; } .ds-lines dt { color: var(--ink-faded, #6a675f); } .ds-lines dd { margin: 0; } .ds-rule { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; } .ds-rule::before, .ds-rule::after { content: ''; flex: 1; border-top: 1px dashed var(--ink-faded, #6a675f); } .ds-total { display: flex; justify-content: space-between; margin-top: 16px !important; padding-top: 12px; border-top: 1px dashed var(--ink-faded, #6a675f); font-size: 18px; font-weight: 700; text-transform: uppercase; }"
+    },
+    {
+      "name": "Placa de ambiente",
+      "kind": "nav",
+      "refersTo": "env-sign",
+      "description": "Placa colgada de la marquesina que anuncia el ambiente con color, código, nombre y patrón.",
+      "html": "<div class=\"ds-canopy\"><div class=\"ds-env ds-env-dev\"><span class=\"ds-env-code\">DEV</span><span class=\"ds-env-name\">DESARROLLO</span><span class=\"ds-env-note\">Datos de prueba · cambios libres</span></div></div>",
+      "css": ".ds-canopy { padding: 18px 28px 28px; background: var(--enamel, #1d2b36); border-bottom: 10px solid var(--signal, #f2c230); } .ds-env { display: inline-grid; grid-template-columns: auto auto; grid-template-areas: 'code name' 'code note'; column-gap: 14px; align-items: center; padding: 12px 22px 14px; border-radius: 6px; box-shadow: 0 14px 22px -12px rgba(9,16,22,0.55); } .ds-env-dev { background: var(--signal, #f2c230); color: var(--signal-ink, #1a1405); border-top: 8px solid transparent; border-image: repeating-linear-gradient(-45deg, var(--signal-ink, #1a1405) 0 10px, var(--signal, #f2c230) 10px 20px) 8; } .ds-env-code { grid-area: code; font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif; font-weight: 700; font-size: 56px; line-height: 0.9; letter-spacing: -0.01em; } .ds-env-name { grid-area: name; font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.08em; } .ds-env-note { grid-area: note; font-size: 14px; font-weight: 600; }"
+    },
+    {
+      "name": "Lámpara de flag",
+      "kind": "chip",
+      "refersTo": "lamp",
+      "description": "Estado de una flag por ambiente: forma de bombillo más texto.",
+      "html": "<div class=\"ds-lamps\"><span class=\"ds-lamp ds-lamp-on\"><i></i>ON</span><span class=\"ds-lamp\"><i></i>off</span><span class=\"ds-lamp ds-lamp-offline\"><i></i>sin señal</span></div>",
+      "css": ".ds-lamps { display: flex; gap: 20px; padding: 14px; background: var(--enamel, #1d2b36); } .ds-lamp { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--enamel-ink-2, #a9b8c1); } .ds-lamp i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--enamel-ink-2, #a9b8c1); } .ds-lamp-on { color: var(--lcd-on, #8df0a8); } .ds-lamp-on i { border-color: var(--lcd-on, #8df0a8); background: var(--lcd-on, #8df0a8); } .ds-lamp-offline i { background: linear-gradient(-45deg, transparent 44%, var(--enamel-ink-2, #a9b8c1) 44% 56%, transparent 56%); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Surtidor y ticket térmico",
+    "overview": "La interfaz es una estación de carga vista de cerca. Sobre un patio de concreto gris se levanta un surtidor de chapa esmaltada azul petróleo, con su franja amarilla de servicio, su vidrio LCD de siete segmentos en verde fósforo y su teclado de teclas físicas. A la derecha, una impresora entrega un ticket de papel térmico: ahí se lee cada transacción distribuida, renglón por renglón, y si falla aparece el sello rojo de REVERSO. Cada pieza de UI es un objeto del mundo (marquesina, placa colgada, manguera, llave de servicio, rollo de comprobantes), no una tarjeta genérica.\n\nLa densidad es de equipo de campo: mucha información en poco espacio, pero con rotulación condensada en mayúsculas, números tabulares y estados que siempre llevan forma y texto. El color se reserva para señal: el amarillo marca lo activo y lo accionable, el verde fósforo es la lectura viva, el rojo es reverso o peligro. El resto es chapa, concreto y papel.\n\nEl build rechaza el dashboard de tarjetas KPI con barra lateral. La transacción no se resume en un badge: se imprime.",
+    "keyCharacteristics": [
+      "Tres materiales con su propia tinta: chapa esmaltada (oscura), papel térmico (claro, monoespaciado), vidrio LCD (negro con dígitos DSEG7 y \"8\" fantasma debajo).",
+      "Franjas gruesas de color como señal estructural: marquesina con borde inferior de ambiente (10px) y corona del surtidor con franja de servicio (8px).",
+      "Estados con forma + texto, nunca solo color.",
+      "Grupos de opciones como un solo panel dividido por costuras de 1px.",
+      "Movimiento mecánico: pasos discretos (`steps()`), recorrido de tecla, avance del papel."
+    ],
+    "rules": [
+      { "name": "The Señal Escasa Rule", "body": "El amarillo marca solo lo seleccionado, lo accionable o lo activo. Una superficie amarilla que no sea ninguna de esas tres cosas es un error.", "section": "colors" },
+      { "name": "The Tres Tintas Rule", "body": "Cada material tiene su tinta base: sobre chapa, enamel-ink; sobre papel, ink; sobre vidrio, lcd-on. Sobre chapa el verde fósforo aparece solo como luz (lámparas, marca de disponible, saldo de flota), nunca como texto corriente; sobre papel no aparece nunca.", "section": "colors" },
+      { "name": "The Ambiente Inequívoco Rule", "body": "El ambiente se anuncia con color, código, nombre y patrón a la vez. Nunca se distingue un ambiente solo por color.", "section": "colors" },
+      { "name": "The Rótulo Condensado Rule", "body": "Todo lo que en un surtidor real estaría pintado o serigrafiado (nombres, rótulos, estados, botones) va en Barlow Condensed mayúsculas. La prosa explicativa queda en Barlow en caja normal.", "section": "typography" },
+      { "name": "The Fuente por Material Rule", "body": "DSEG7 solo para lecturas numéricas de máquina; JetBrains Mono solo en papel, en identificadores técnicos (`code`) y en montos de saldo. Nunca DSEG7 para texto ni monoespaciada para rótulos de chapa.", "section": "typography" },
+      { "name": "The Panel Único Rule", "body": "Opciones hermanas (mangueras, tarjetas de flota, llaves de servicio) viven en un solo panel con fondo enamel-edge y `gap: 1px`: la costura es el divisor. No se separan en tarjetas flotantes.", "section": "layout" },
+      { "name": "The Pared con Recorrido Rule", "body": "Una sombra sólida sin desenfoque solo existe como pared inferior de una tecla que se puede presionar y cuyo `:active` la consume con un `translateY` igual. Nunca como decoración ni con desplazamiento horizontal.", "section": "elevation" },
+      { "name": "The Selección sin Raya Rule", "body": "La selección dentro de un panel se marca cambiando a enamel-3 más una línea interior: `inset 0 3px 0` signal en la manguera, `inset 0 0 0 1px` signal en la tarjeta de flota. Nada de rayas laterales gruesas.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do convertir cada pieza nueva en un objeto del surtidor, la impresora o el patio antes de dibujarla.",
+      "Do acompañar cada estado con forma y texto; el color solo refuerza.",
+      "Do mostrar lecturas numéricas de máquina en el vidrio LCD con \"8\" fantasma y ancho fijo.",
+      "Do agrupar opciones hermanas en un panel con costuras de 1px enamel-edge.",
+      "Do usar `outline: 3px solid` signal para todo foco visible.",
+      "Do animar con pasos mecánicos (`steps()`) o con `cubic-bezier(0.16, 1, 0.3, 1)`, y respetar `prefers-reduced-motion`.",
+      "Do imprimir en el ticket cada paso y cada compensación con su resultado real."
+    ],
+    "donts": [
+      "Don't construir paneles de tarjetas KPI con barra lateral.",
+      "Don't marcar selección con una raya lateral gruesa; usa enamel-3 más línea interior.",
+      "Don't usar amarillo en superficies que no estén seleccionadas, activas o accionables.",
+      "Don't poner sombras sólidas sin desenfoque en elementos que no se presionan.",
+      "Don't usar rótulo condensado impreso en el papel (el sello REVERSO es tinta de sello, no de impresora) ni monoespaciada para rótulos de chapa.",
+      "Don't distinguir ambientes solo por color."
+    ]
+  }
+}

@@ -33,3 +33,7 @@ output "private_api_id" {
 output "private_api_invoke_url" {
   value = try(aws_api_gateway_stage.internal[0].invoke_url, null)
 }
+
+output "frontend_target_group_arn" {
+  value = aws_lb_target_group.frontend.arn
+}

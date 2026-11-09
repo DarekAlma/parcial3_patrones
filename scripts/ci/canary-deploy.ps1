@@ -81,6 +81,7 @@ $targets = @{
     'energy-dispatch-service'     = @{ Path = '/sessions?status=ACTIVE'; Method = 'GET'; Body = '' }
     # Sin comillas dobles: PowerShell 5.1 las altera al pasar argumentos a kubectl.
     'graphql-gateway'             = @{ Path = '/graphql'; Method = 'POST'; Body = "{query:'{ environment { environment version track } stations { id availableConnectors } }'}" }
+    'frontend'                    = @{ Path = '/'; Method = 'GET'; Body = '' }
 }
 $t = $targets[$Service]
 $probeFrom = if ($Service -eq 'graphql-gateway') { 'deployment/station-reservation-service' } else { 'deployment/graphql-gateway' }
@@ -109,7 +110,18 @@ Write-Host "Esperando $MetricsWaitSeconds s a que los logs lleguen a CloudWatch 
 Start-Sleep -Seconds $MetricsWaitSeconds
 
 # ------------------------------------------------------- 4. gate CloudWatch
+# Los microservicios publican RequestCount/ErrorCount en CloudWatch (metric
+# filters por Track). El frontend es nginx estatico sin agente de CloudWatch:
+# para el se cuentan las requests y los 5xx en los access logs del pod canary.
+$metricsSource = if ($Service -eq 'frontend') { 'access logs del pod canary' } else { "CloudWatch AegisVolt/$Environment" }
 function Get-CanaryMetric([string]$Metric) {
+    if ($Service -eq 'frontend') {
+        $since = [int][math]::Ceiling(((Get-Date).ToUniversalTime() - $startTime).TotalSeconds) + 5
+        $lines = @((Get-KubectlOutput -Kubeconfig $kc -Arguments @('logs', '-l', 'app.kubernetes.io/name=frontend,aegisvolt.io/track=canary', "--since=${since}s", '--tail=-1')) -split "`n" |
+                Where-Object { $_ -match '"(GET|POST|HEAD) [^"]*" (\d{3}) ' -and $_ -notmatch '/health' })
+        if ($Metric -eq 'RequestCount') { return [double]$lines.Count }
+        return [double]@($lines | Where-Object { $_ -match '" 5\d\d ' }).Count
+    }
     $end = (Get-Date).ToUniversalTime().AddMinutes(1)
     $json = aws cloudwatch get-metric-statistics --namespace "AegisVolt/$Environment" --metric-name $Metric `
         --dimensions "Name=Service,Value=$Service" 'Name=Track,Value=canary' `
@@ -136,7 +148,7 @@ $summary = @(
     '',
     "Imagen: ``$($stableImage -replace '.*:', '')`` -> ``$($newImage -replace '.*:', '')``  |  peso canary ~$canaryWeight%  |  trafico sintetico: $probe",
     '',
-    '| Metrica CloudWatch (AegisVolt/' + $Environment + ', Track=canary) | Valor |', '|---|---|',
+    "| Metrica ($metricsSource, Track=canary) | Valor |", '|---|---|',
     "| RequestCount | $requestsSeen |",
     "| ErrorCount | $errorsSeen |",
     "| Tasa de error | $([math]::Round($errorRate * 100, 2))% |",

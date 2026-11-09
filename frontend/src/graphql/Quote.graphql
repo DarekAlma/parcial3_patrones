@@ -1,0 +1,14 @@
+query Quote($kwh: Float!, $priority: Boolean) {
+  quote(kwh: $kwh, priority: $priority) {
+    kwh
+    tier
+    basePriceCentsPerKwh
+    priceCentsPerKwh
+    surgeEnabled
+    isPeakHour
+    surgeApplied
+    surgeMultiplier
+    amountCents
+    localHour
+  }
+}

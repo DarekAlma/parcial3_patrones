@@ -116,3 +116,7 @@ variable "enable_private_api" {
   type    = bool
   default = true
 }
+
+variable "frontend_listener_port" {
+  type = number
+}

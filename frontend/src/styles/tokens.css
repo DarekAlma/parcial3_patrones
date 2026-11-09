@@ -1,0 +1,115 @@
+@font-face {
+  font-family: 'DSEG7';
+  src: url('../fonts/DSEG7Classic-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+
+:root {
+  /* Patio de concreto (suelo), placas de concreto con juntas */
+  --forecourt: #c6ccc9;
+  --forecourt-joint: #b3bab7;
+  --forecourt-ink: #2b3439;
+
+  /* Chapa esmaltada del surtidor */
+  --enamel: #1d2b36;
+  --enamel-2: #263845;
+  --enamel-3: #33495a;
+  --enamel-edge: #0f1820;
+  --enamel-ink: #e8ecea;
+  --enamel-ink-2: #a9b8c1;
+
+  /* Franja de servicio */
+  --signal: #f2c230;
+  --signal-deep: #c99a12;
+  --signal-ink: #1a1405;
+
+  /* Display LCD de 7 segmentos */
+  --lcd-bg: #0c1410;
+  --lcd-on: #8df0a8;
+  --lcd-off: rgba(141, 240, 168, 0.09);
+  --lcd-dim: #4f8a62;
+
+  /* Papel termico */
+  --paper: #f3f0e8;
+  --paper-shade: #e3dfd3;
+  --ink: #1b1b19;
+  --ink-faded: #6a675f;
+  --reverso: #c8352a;
+  --reverso-deep: #9c2219;
+
+  /* Estados (siempre acompanados de marca + texto) */
+  --ok: #2f9e5b;
+  --hold: #f2c230;
+  --fault: #c8352a;
+  --idle: #7d8a90;
+
+  --font-sign: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+  --font-ui: 'Barlow', system-ui, sans-serif;
+  --font-ticket: 'JetBrains Mono', ui-monospace, monospace;
+  --font-lcd: 'DSEG7', ui-monospace, monospace;
+
+  --radius-body: 18px;
+  --radius-key: 8px;
+  --shadow-body: 0 18px 30px -18px rgba(9, 16, 22, 0.55), 0 2px 0 rgba(255, 255, 255, 0.06) inset;
+  --shadow-key: 0 3px 0 var(--enamel-edge), 0 6px 10px -6px rgba(0, 0, 0, 0.6);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--forecourt-ink);
+  background-color: var(--forecourt);
+  /* Concreto del patio: grano fino (ruido SVG) y juntas de dilatacion
+     horizontales irregulares, como las losas fundidas de una estacion. */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.15 0 0 0 0 0.18 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(transparent 0 437px, var(--forecourt-joint) 437px 439px, transparent 439px 1180px, var(--forecourt-joint) 1180px 1182px, transparent 1182px);
+  background-size: 220px 220px, 100% 1600px;
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--signal-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 3px;
+}
+
+* {
+  scrollbar-color: var(--enamel-3) transparent;
+  scrollbar-width: thin;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

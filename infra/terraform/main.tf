@@ -100,6 +100,7 @@ module "api_gateway" {
   node_security_group_id = module.eks.node_security_group_id
   node_port              = var.graphql_node_port
   nlb_listener_port      = var.nlb_listener_port
+  frontend_listener_port = var.frontend_listener_port
   cors_allow_origins     = var.cors_allow_origins
   throttling_burst_limit = var.api_throttling_burst_limit
   throttling_rate_limit  = var.api_throttling_rate_limit
@@ -113,5 +114,5 @@ module "ecr" {
 
   project     = var.project
   environment = local.environment
-  services    = local.services
+  services    = concat(local.services, ["frontend"])
 }

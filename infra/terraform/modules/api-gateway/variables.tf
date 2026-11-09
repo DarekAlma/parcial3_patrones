@@ -69,3 +69,14 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "frontend_node_port" {
+  description = "NodePort del Service frontend (nginx) en Kubernetes."
+  type        = number
+  default     = 30081
+}
+
+variable "frontend_listener_port" {
+  description = "Puerto TCP del listener frontend del NLB interno (unico por ambiente en Floci)."
+  type        = number
+}

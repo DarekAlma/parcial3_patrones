@@ -8,6 +8,7 @@ node_min_size     = 2
 node_max_size     = 4
 
 nlb_listener_port          = 18082
+frontend_listener_port     = 18092
 cors_allow_origins         = ["*"]
 api_throttling_burst_limit = 500
 api_throttling_rate_limit  = 200
