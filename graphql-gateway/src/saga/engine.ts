@@ -115,6 +115,11 @@ export class SagaEngine {
           log.error('saga failed after pivot', { event: 'saga_failed', step: step.name, code: failure.code });
           return record;
         }
+        // Fallo AMBIGUO (timeout, red, 5xx): el servicio pudo aplicar el efecto
+        // aunque la respuesta se perdiera. Se compensa tambien ESTE paso; como
+        // las compensaciones son idempotentes, si no habia nada que deshacer
+        // responden NOTHING_TO_*. Un rechazo definitivo (4xx de dominio) no.
+        if (isAmbiguous(err) && step.compensate) stepRecord.status = 'COMPENSATING';
         return this.compensate(record, steps, ctx, log);
       }
     }
@@ -232,7 +237,11 @@ export class SagaEngine {
     if (TERMINAL_STATUSES.includes(record.status) && !retryingFailed) return record;
 
     record.error ??= { step: 'RECOVERY', code: 'ORPHANED_SAGA', message: 'SAGA sin terminar recuperada por auditoria' };
-    for (const s of record.steps) if (s.status === 'RUNNING') s.status = 'FAILED';
+    // Un paso RUNNING es ambiguo: el orquestador murio sin saber si el servicio
+    // aplico el efecto. Si tiene compensacion se ejecuta (idempotente).
+    for (const [i, s] of record.steps.entries()) {
+      if (s.status === 'RUNNING') s.status = steps[i]?.compensate ? 'COMPENSATING' : 'FAILED';
+    }
     log.warn('recovering orphaned saga', { event: 'saga_recovery_started', status: record.status });
     return this.compensate(record, steps, { sagaId, data: record.data as D }, log);
   }
@@ -248,6 +257,11 @@ function describe(err: unknown): { code: string; message: string } {
   if (err instanceof RemoteError) return { code: err.code, message: `${err.service}: ${err.message}` };
   const e = err as { code?: string; message?: string };
   return { code: e?.code ?? 'UNEXPECTED_ERROR', message: e?.message ?? String(err) };
+}
+
+/** Rechazo definitivo = error remoto no reintentable (4xx de dominio). Todo lo demas es ambiguo. */
+function isAmbiguous(err: unknown): boolean {
+  return !(err instanceof RemoteError) || err.retryable;
 }
 
 function elapsed(record: SagaRecord): number {
