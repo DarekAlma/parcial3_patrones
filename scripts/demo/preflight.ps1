@@ -24,6 +24,12 @@ if ($Fix -and (Http 'http://localhost:4566/_floci/health') -ne 200) {
 }
 $floci = Http 'http://localhost:4566/_floci/health'
 Check 'Floci (localhost:4566, modo persistent)' ($floci -eq 200) ((docker inspect floci --format '{{range .Config.Env}}{{println .}}{{end}}' 2>$null | Select-String 'STORAGE_MODE') -join '')
+# Tras reiniciar Docker otro contenedor puede quedarse con la IP que los k3s
+# esperan para Floci (mirrors del registro): ErrImagePull y pods sin AWS.
+if ($Fix -and (Repair-FlociAddress)) { Start-Sleep 60 }
+$flociIp = Get-FlociNetworkIp
+$mirrorIp = Get-FlociMirrorIp
+Check 'IP de Floci = mirrors de los k3s' ($flociIp -and $flociIp -eq $mirrorIp) "floci=$flociIp mirrors=$mirrorIp"
 
 # 2. Backend de Terraform
 $versions = "$(aws s3api list-object-versions --bucket aegisvolt-tfstate --prefix env:/dev/aegisvolt/terraform.tfstate --query "length(Versions[?Key=='env:/dev/aegisvolt/terraform.tfstate'])" --output text)".Trim()
@@ -34,6 +40,10 @@ $urls = [ordered]@{}
 foreach ($e in $ValidEnvironments) {
     $status = "$(aws eks describe-cluster --name "aegisvolt-$e" --query cluster.status --output text 2>$null)".Trim()
     Check "EKS aegisvolt-$e" ($status -eq 'ACTIVE') $status
+    # Un nodo k3s reiniciado puede cambiar de IP: el NLB quedaria sin targets (503).
+    if ($Fix -and $status -eq 'ACTIVE') {
+        try { Sync-NlbTargets -Environment $e -Kubeconfig (Get-Kubeconfig -Environment $e 6>$null) } catch { Write-Host "Targets $e`: $($_.Exception.Message)" }
+    }
     $apiId = "$(aws apigatewayv2 get-apis --query "Items[?Name=='aegisvolt-$e'].ApiId | [0]" --output text)".Trim()
     $base = "http://$apiId.execute-api.localhost.floci.io:4566"
     $urls[$e] = $base

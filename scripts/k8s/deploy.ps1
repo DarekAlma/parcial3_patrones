@@ -35,8 +35,14 @@ $tmp = Join-Path ([IO.Path]::GetTempPath()) "aegisvolt-$Environment-manifest.yam
 Invoke-Native kubectl @('--kubeconfig', $kc, 'apply', '-f', $tmp)
 
 # 3. Service "floci" -> IP de Floci en la red Docker compartida con el k3s
-$flociIp = (docker inspect floci --format '{{(index .NetworkSettings.Networks \"aegisvolt\").IPAddress}}').Trim()
+$flociIp = Get-FlociNetworkIp
 if (-not $flociIp) { throw 'No se encontro la IP de Floci en la red aegisvolt' }
+# Los nodos descargan imagenes por la IP que Floci fijo en los mirrors al crear
+# el cluster: si Floci cambio de IP, el canary fallaria con ErrImagePull.
+$mirrorIp = Get-FlociMirrorIp
+if ($mirrorIp -and $mirrorIp -ne $flociIp) {
+    throw "Floci esta en $flociIp pero los mirrors de k3s esperan $mirrorIp. Corre .\scripts\demo\preflight.ps1 -Fix"
+}
 $slice = @"
 apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
@@ -77,20 +83,7 @@ Invoke-Native kubectl @('--kubeconfig', $kc, 'apply', '-f', $cmYamlFile)
 
 # 5. Targets del NLB: nodos del cluster en el NodePort de cada workload expuesto
 #    (graphql-gateway 30080, frontend 30081).
-# "$(...)": una salida vacia de un comando nativo es AutomationNull y no admite .Trim().
-$nodeIps = @("$(kubectl --kubeconfig $kc get nodes -o "jsonpath={.items[*].status.addresses[?(@.type=='InternalIP')].address}")".Trim() -split '\s+' | Where-Object { $_ })
-if (-not $nodeIps) { throw 'No se pudieron obtener las IPs de los nodos del cluster' }
-foreach ($binding in @(@{ Tg = 'tg-graphql'; Port = 30080 }, @{ Tg = 'tg-frontend'; Port = 30081 })) {
-    $tg = "$(aws elbv2 describe-target-groups --names "aegisvolt-$Environment-$($binding.Tg)" --query 'TargetGroups[0].TargetGroupArn' --output text)".Trim()
-    if (-not $tg -or $tg -eq 'None') { Write-Host "Target group $($binding.Tg) inexistente: se omite"; continue }
-    $registered = @("$(aws elbv2 describe-target-health --target-group-arn $tg --query 'TargetHealthDescriptions[].Target.Id' --output text)".Trim() -split '\s+' | Where-Object { $_ -and $_ -ne 'None' })
-    foreach ($ip in $nodeIps) {
-        if ($registered -notcontains $ip) { Invoke-Native aws @('elbv2', 'register-targets', '--target-group-arn', $tg, '--targets', "Id=$ip,Port=$($binding.Port)") }
-    }
-    foreach ($ip in $registered) {
-        if ($nodeIps -notcontains $ip) { Invoke-Native aws @('elbv2', 'deregister-targets', '--target-group-arn', $tg, '--targets', "Id=$ip,Port=$($binding.Port)") }
-    }
-}
+Sync-NlbTargets -Environment $Environment -Kubeconfig $kc
 
 Write-Summary (@(
         "## Kubernetes ``aegisvolt-$Environment``", '',

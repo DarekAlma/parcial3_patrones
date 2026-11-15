@@ -305,6 +305,7 @@ kubectl --kubeconfig $KDEV -n aegisvolt scale deploy/billing-wallet-service-cana
 |---------------|-------|
 | GitHub Actions caído (ya pasó el 9-nov) | Mostrar runs anteriores en verde (PR #6 a #8) y [githubstatus.com](https://www.githubstatus.com). Todo lo demás es local y sigue funcionando |
 | Floci se reinició | Los datos persisten (modo `persistent`). `Get-Kubeconfig` usa sola la credencial del k3s si el token IAM falla. Correr `preflight.ps1 -Fix` |
+| Pods en `CrashLoopBackOff` con `ECONNREFUSED <ClusterIP>:4566` o canary con `ErrImagePull` tras reiniciar Docker | Otro contenedor (p. ej. Prefect) tomó la IP que los k3s esperan para Floci. `preflight.ps1 -Fix` lo detecta (chequeo «IP de Floci = mirrors de los k3s») y devuelve Floci a esa IP |
 | El registry de ECR no responde tras recrear Floci | `docker network connect aegisvolt floci-aws-ecr-registry` |
 | La UI no carga en el navegador integrado de la app | Usar Chrome/Edge normal; el integrado bloquea los assets de `*.localhost.floci.io` |
 | Las URLs de las UI cambiaron | Las imprime `preflight.ps1`. También `aws apigatewayv2 get-apis` |
