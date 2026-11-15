@@ -2,7 +2,26 @@
 
 > Orden según el peso de la rúbrica (IaC 30% → CI/CD 25% → SAGA 25% → Observabilidad 12% → Frontend 8%).
 > Cada bloque trae la **frase de apertura**, los **comandos exactos**, **qué mostrar** y el **Plan B**.
-> El detalle teórico de cada respuesta está en [docs/sustentacion/](sustentacion/).
+> El detalle teórico de cada respuesta está en [docs/sustentacion/](sustentacion/). Preguntas con respuesta y ubicación en el código: [PREGUNTAS-SUSTENTACION.md](PREGUNTAS-SUSTENTACION.md).
+
+## Cronograma (≈ 25 min)
+
+| Bloque | Tiempo | Qué demuestra | Pregunta guía |
+|--------|--------|---------------|---------------|
+| 1. Apertura | 2 min | Arquitectura y aislamiento por ambiente | — |
+| 2. IaC | 7 min | Workspaces, versiones del tfstate, recorrido por VPCE | 6.1 (las tres) |
+| 3. CI/CD | 6 min | Push bloqueado, ambiente dinámico, canary con rollback | 6.2 (las tres) |
+| 4. SAGA y flags | 6 min | Falla inducida, compensación en tablas, idempotencia | 6.3 (las dos) |
+| 5. Observabilidad | 3 min | Prefect y `correlation_id` en CloudWatch | 6.4 (primera) |
+| 6. Frontend | 2 min | Flag en dev sin redesplegar, prod intacto | 6.4 (segunda) |
+
+**Cinco reglas para no perder puntos**
+
+1. Responde primero en una frase; después abre el archivo y ejecuta el comando.
+2. Tras cambiar una flag, **cuenta 4 segundos** antes de disparar la mutation: cada pod la lee con cache de 3 s.
+3. En la pregunta del recorrido de red, **empieza por el VPC Endpoint**, no por el VPC Link (bloque 2.3).
+4. Si algo no es demostrable por ser Floci, dilo tú antes de que lo pregunten y muestra lo declarado en Terraform.
+5. Al terminar cada bloque deja el ambiente como estaba: flag de falla apagada, canary en 0.
 
 ---
 
@@ -99,9 +118,16 @@ aws dynamodb list-tables --query "TableNames" --output table   # aegisvolt-<serv
 
 ### 2.3 Recorrido del paquete por VPC Endpoints
 
-**Frase:** «Las subredes privadas no tienen ruta a Internet. El cliente entra por API Gateway, el VPC Link lo deja en el NLB interno, y de ahí pasa al NodePort y al pod. Los pods salen a DynamoDB, S3 y CloudWatch solo por VPC Endpoints.»
+**Frase:** «Un workload de la VPC resuelve `execute-api` por DNS privado hacia la ENI del **Interface VPC Endpoint**, en una subred privada. El security group del endpoint solo acepta 443 desde la VPC, y la API privada solo acepta llamadas cuyo `aws:SourceVpce` sea ese endpoint. De ahí, API Gateway entrega por el VPC Link al NLB interno, que llega al NodePort del nodo y al pod. La tabla de rutas privada solo tiene la ruta local: el paquete nunca sale a Internet.»
+
+**Segunda frase:** «El navegador entra por la HTTP API pública y comparte el tramo final: VPC Link, NLB, NodePort, pod. Los pods salen a DynamoDB y S3 por Gateway VPCE, y a CloudWatch por Interface VPCE.»
 
 ```powershell
+# 1. El VPC Endpoint de execute-api y la policy de la API privada (aws:SourceVpce)
+aws ec2 describe-vpc-endpoints --filters Name=tag:Name,Values=aegisvolt-dev-vpce-execute-api --query "VpcEndpoints[0].[VpcEndpointId,VpcEndpointType,PrivateDnsEnabled]" --output table
+$priv = aws apigateway get-rest-apis --query "items[?name=='aegisvolt-dev-internal'].id | [0]" --output text
+aws apigateway get-rest-api --rest-api-id $priv --query "{tipo:endpointConfiguration.types,vpce:endpointConfiguration.vpcEndpointIds,policy:policy}"
+# 2. Tabla de rutas privada, resto de endpoints y targets del NLB
 aws ec2 describe-route-tables --filters Name=tag:Name,Values=aegisvolt-dev-rt-private --query "RouteTables[0].Routes" --output table
 aws ec2 describe-vpc-endpoints --filters Name=tag:Name,Values=aegisvolt-dev-* --query "VpcEndpoints[].[ServiceName,VpcEndpointType,PrivateDnsEnabled]" --output table
 aws ec2 describe-vpc-endpoints --filters Name=tag:Name,Values=aegisvolt-dev-vpce-dynamodb --query "VpcEndpoints[0].PolicyDocument" --output text
@@ -112,6 +138,10 @@ aws elbv2 describe-target-health --target-group-arn $tg --output table      # IP
 **Código a señalar:** [modules/network/main.tf](../infra/terraform/modules/network/main.tf) (rt-private sin 0.0.0.0/0 y policies) y [modules/api-gateway/main.tf](../infra/terraform/modules/api-gateway/main.tf) (cadena de security groups y API privada con `aws:SourceVpce`).
 
 > **Si preguntan por la ruta prefix-list:** Floci guarda la asociación del Gateway VPCE con `rt-private` pero no la muestra en `describe-route-tables`. En AWS real aparece como `pl-xxxx → vpce-xxxx`.
+>
+> **Si piden probar que desde fuera no entra:** dilo sin rodeos: «Floci no evalúa resource policies, así que aquí la API privada responde. Lo que sí puedo mostrar es la policy declarada y que Prefect la usa: en el bloque 5.2 el log dice *recuperada via API private*.»
+>
+> **Si preguntan por el API server de EKS:** «Tiene acceso público y privado para que el runner lo alcance; los nodos y los pods están en subredes privadas. En producción restringiría `public_access_cidrs`.»
 
 ---
 
@@ -159,6 +189,13 @@ Variante sana, solo si piden ver una promoción:
 .\scripts\ci\canary-deploy.ps1 -Environment dev -Service billing-wallet-service -Version demo-ok -Force -Requests 100   # PROMOVIDO a 100%
 ```
 
+Antes de repetir un canary después de un rollback, confirma que la alarma volvió a `OK`:
+```powershell
+aws cloudwatch describe-alarms --alarm-names aegisvolt-dev-billing-wallet-service-canary-errors --query "MetricAlarms[0].StateValue" --output text
+```
+
+> **Si muestran un run de CD con «sin cambios»:** es correcto. El tag de la imagen es el hash del contenido del servicio; si no cambió, no hay nada que promover. Por eso la demo usa `-Force`.
+>
 > **Plan B:** si el canary tarda, las promociones reales están en el run de CD del PR #6 (dev): `frontend`, `station` y `billing` salieron PROMOVIDOS con 0% de error.
 
 ---
@@ -170,6 +207,7 @@ Variante sana, solo si piden ver una promoción:
 **Frase:** «Activo la falla de hardware solo en test, disparo la reserva por GraphQL y muestro la compensación en las tablas de billing y reservas.»
 
 1. En la **UI de test**, panel de servicio: girar **Simular falla de hardware** a ON. La lámpara TEST se enciende y PROD sigue en off.
+   - **Cuenta 4 segundos** antes del paso siguiente. Los pods de `energy-dispatch-service` leen la flag con cache de 3 s; si disparas antes, la SAGA puede salir completada.
 2. En la **UI de test**: flota *Logística Andina Express*, 20 kWh, **AUTORIZAR Y CARGAR**.
    - Sale un ticket **en negativo** con el sello **REVERSO**: «El cargador reportó una falla física», luego «Reembolso a la billetera · reembolsado» y «Liberación de la bahía · liberada».
    - Copia el `correlation_id` del pie del ticket.
@@ -267,6 +305,7 @@ kubectl --kubeconfig $KDEV -n aegisvolt scale deploy/billing-wallet-service-cana
 |---------------|-------|
 | GitHub Actions caído (ya pasó el 9-nov) | Mostrar runs anteriores en verde (PR #6 a #8) y [githubstatus.com](https://www.githubstatus.com). Todo lo demás es local y sigue funcionando |
 | Floci se reinició | Los datos persisten (modo `persistent`). `Get-Kubeconfig` usa sola la credencial del k3s si el token IAM falla. Correr `preflight.ps1 -Fix` |
+| Pods en `CrashLoopBackOff` con `ECONNREFUSED <ClusterIP>:4566` o canary con `ErrImagePull` tras reiniciar Docker | Otro contenedor (p. ej. Prefect) tomó la IP que los k3s esperan para Floci. `preflight.ps1 -Fix` lo detecta (chequeo «IP de Floci = mirrors de los k3s») y devuelve Floci a esa IP |
 | El registry de ECR no responde tras recrear Floci | `docker network connect aegisvolt floci-aws-ecr-registry` |
 | La UI no carga en el navegador integrado de la app | Usar Chrome/Edge normal; el integrado bloquea los assets de `*.localhost.floci.io` |
 | Las URLs de las UI cambiaron | Las imprime `preflight.ps1`. También `aws apigatewayv2 get-apis` |
@@ -279,6 +318,7 @@ kubectl --kubeconfig $KDEV -n aegisvolt scale deploy/billing-wallet-service-cana
 | Pregunta | Respuesta |
 |----------|-----------|
 | ¿Por qué orquestación y no coreografía? | Orden estricto y compensación en orden inverso explícitos y auditables en un log persistente |
+| ¿Y si un paso falla por timeout pero sí se aplicó? | El motor trata timeout y 5xx como fallo ambiguo y compensa también ese paso; la compensación es idempotente y responde `NOTHING_TO_*` si no había nada |
 | ¿Qué es el pivot? | Activar el cargador: si falla se compensa todo, si pasa ya no se revierte; después solo hay pasos que se reintentan |
 | ¿Por qué solo merge commit? | Para que `dev`, `test` y `prod` compartan los mismos commits; un squash haría divergir las ramas |
 | ¿Cómo sabe el canary qué desplegar? | El tag de imagen es el hash del contenido del servicio; si es igual al stable, el resultado es "sin cambios" |

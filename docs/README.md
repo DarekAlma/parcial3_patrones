@@ -2,6 +2,14 @@
 
 > **Día de la sustentación:** sigue [GUION-DEMO.md](GUION-DEMO.md) y corre `.\scripts\demo\preflight.ps1 -Fix` 30 minutos antes.
 
+## Para preparar la sustentación
+
+| Documento | Para qué |
+|-----------|----------|
+| [TECNOLOGIAS.md](TECNOLOGIAS.md) | Qué es cada tecnología, para qué se usa aquí y dónde está |
+| [PREGUNTAS-SUSTENTACION.md](PREGUNTAS-SUSTENTACION.md) | Preguntas probables del docente con respuesta corta y ubicación en el código |
+| [GUION-DEMO.md](GUION-DEMO.md) | Guion cronometrado de la demo en vivo, con comandos y Plan B |
+
 ## Guías de sustentación (por capa de la rúbrica)
 
 | Capa | Peso | Documento | Preguntas guía del enunciado |
@@ -62,7 +70,7 @@ C:\actions-runner-aegisvolt\run.cmd
 
 ```powershell
 npm ci
-npm run test:unit          # 28 pruebas, sin red
+npm run test:unit          # 31 pruebas, sin red
 npm run test:integration   # 25 pruebas, DynamoDB en Floci (tablas efimeras)
 npm run test:e2e           # 7 pruebas, 4 servicios como procesos + GraphQL
 npm run dev:stack          # servicios locales contra las tablas de dev -> http://localhost:8080/graphql

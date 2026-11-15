@@ -7,7 +7,9 @@ type Data = { calls: string[] } & Record<string, unknown>;
 
 const fast = { compensationAttempts: 3, retriableAttempts: 3, backoffMs: 1 };
 
-function steps(opts: { failAt?: string; compensationFailures?: Record<string, number>; retriableFailures?: number } = {}) {
+function steps(
+  opts: { failAt?: string; timeoutAt?: string; compensationFailures?: Record<string, number>; retriableFailures?: number } = {},
+) {
   const compFailures = { ...(opts.compensationFailures ?? {}) };
   let retriableFailures = opts.retriableFailures ?? 0;
   const make = (name: string, kind: SagaStep<Data>['kind'], statusAfter?: 'RESERVED' | 'CHARGED'): SagaStep<Data> => ({
@@ -19,6 +21,8 @@ function steps(opts: { failAt?: string; compensationFailures?: Record<string, nu
         retriableFailures--;
         throw new Error('transient');
       }
+      // Timeout: el servicio pudo aplicar el efecto, la respuesta se perdio.
+      if (opts.timeoutAt === name) throw new RemoteError('svc', 0, 'NETWORK_ERROR', `${name} timeout`, true);
       if (opts.failAt === name) throw new RemoteError('svc', 422, `${name}_FAILED`, `${name} fallo`, false);
       return { statusAfter, detail: { ok: true } };
     },
@@ -158,6 +162,44 @@ describe('SagaEngine - orquestacion', () => {
     expect(recovered!.status).toBe('COMPENSATED');
     expect(recovered!.compensations.map((c) => c.step)).toEqual(['CHARGE', 'RESERVE']);
     expect(recovered!.error?.code).toBe('ORPHANED_SAGA');
+  });
+
+  it('fallo ambiguo (timeout) en el cobro: compensa TAMBIEN ese paso y luego libera la bahia', async () => {
+    const { engine } = setup();
+    const { record, data } = await run(engine, 'saga-timeout', steps({ timeoutAt: 'CHARGE' }));
+
+    expect(record.status).toBe('COMPENSATED');
+    expect(data.calls).toEqual(['do:RESERVE', 'do:CHARGE', 'undo:CHARGE', 'undo:RESERVE']);
+    expect(record.compensations.map((c) => c.step)).toEqual(['CHARGE', 'RESERVE']);
+    expect(record.steps.map((s) => s.status)).toEqual(['COMPENSATED', 'COMPENSATED', 'PENDING', 'PENDING']);
+    expect(record.error).toMatchObject({ step: 'CHARGE', code: 'NETWORK_ERROR' });
+  });
+
+  it('fallo ambiguo en el pivot (sin compensacion propia): queda FAILED y se compensa lo anterior', async () => {
+    const { engine } = setup();
+    const { record, data } = await run(engine, 'saga-pivot-timeout', steps({ timeoutAt: 'ACTIVATE' }));
+
+    expect(record.status).toBe('COMPENSATED');
+    expect(data.calls).toEqual(['do:RESERVE', 'do:CHARGE', 'do:ACTIVATE', 'undo:CHARGE', 'undo:RESERVE']);
+    expect(record.steps[2]!.status).toBe('FAILED');
+  });
+
+  it('recover() compensa el paso que quedo RUNNING (crash sin saber si el cobro se aplico)', async () => {
+    const { engine, store } = setup();
+    const s = steps();
+    await run(engine, 'saga-orphan-running', s);
+    const record = (await store.get('saga-orphan-running'))!;
+    record.status = 'RESERVED';
+    record.steps[1]!.status = 'RUNNING';
+    record.steps[2]!.status = 'PENDING';
+    record.steps[3]!.status = 'PENDING';
+    record.completedAt = undefined;
+    await store.save(record);
+
+    const recovered = await engine.recover('saga-orphan-running', s);
+    expect(recovered!.status).toBe('COMPENSATED');
+    expect(recovered!.compensations.map((c) => c.step)).toEqual(['CHARGE', 'RESERVE']);
+    expect(recovered!.steps.map((x) => x.status)).toEqual(['COMPENSATED', 'COMPENSATED', 'PENDING', 'PENDING']);
   });
 
   it('todos los logs de la SAGA llevan correlation_id = sagaId', async () => {
