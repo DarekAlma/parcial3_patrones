@@ -39,6 +39,84 @@ function Get-Kubeconfig {
     return $path
 }
 
+# ---------------------------------------------------------------------------
+# IP de Floci en la red Docker "aegisvolt".
+# Al crear cada cluster, Floci escribe su IP de ese momento en los mirrors del
+# registro (/etc/rancher/k3s/registries.yaml) y el k3s ya no la vuelve a leer.
+# docker-compose no fija la IP: si tras un reinicio de Docker otro contenedor
+# (p. ej. Prefect) toma esa IP, los nodos no pueden descargar imagenes y el
+# Service "floci" apunta al contenedor equivocado. La IP de los mirrors es la
+# fuente de verdad; Repair-FlociAddress devuelve Floci a ella.
+# ---------------------------------------------------------------------------
+function Get-FlociNetworkIp {
+    "$(docker inspect floci --format '{{(index .NetworkSettings.Networks \"aegisvolt\").IPAddress}}' 2>$null)".Trim()
+}
+
+function Get-FlociMirrorIp {
+    $ErrorActionPreference = 'Continue'
+    $ips = foreach ($container in @(docker ps --filter 'name=floci-aws-eks-aegisvolt-' --format '{{.Names}}')) {
+        $raw = (docker exec $container cat /etc/rancher/k3s/registries.yaml 2>$null) -join "`n"
+        if ($raw -match '"localhost:4566":\s*\n\s*endpoint:\s*\n\s*-\s*"http://([\d.]+):4566"') { $Matches[1] }
+    }
+    $unique = @($ips | Sort-Object -Unique)
+    if ($unique.Count -gt 1) { throw "Los clusters k3s esperan a Floci en IPs distintas: $($unique -join ', ')" }
+    return $(if ($unique.Count) { $unique[0] } else { $null })
+}
+
+function Repair-FlociAddress {
+    $ErrorActionPreference = 'Continue'
+    $expected = Get-FlociMirrorIp
+    $current = Get-FlociNetworkIp
+    if (-not $expected -or $current -eq $expected) { return $false }
+
+    # Contenedor que ocupa la IP esperada (se reconecta despues con IP nueva).
+    $holder = @(docker network inspect aegisvolt --format '{{range .Containers}}{{.Name}}={{.IPv4Address}}{{println}}{{end}}') |
+        Where-Object { $_ -like "*=$expected/*" } | ForEach-Object { $_.Split('=')[0] } | Select-Object -First 1
+    Write-Host "Floci esta en $current pero los mirrors de k3s esperan $expected$(if ($holder) { " (ocupada por $holder)" })"
+    if ($holder) { Invoke-Native docker @('network', 'disconnect', 'aegisvolt', $holder) | Out-Null }
+    Invoke-Native docker @('network', 'disconnect', 'aegisvolt', 'floci') | Out-Null
+    Invoke-Native docker @('network', 'connect', '--ip', $expected, '--alias', 'floci', 'aegisvolt', 'floci') | Out-Null
+    # Al reconectar la red, Docker Desktop pierde el port-forward de
+    # localhost:4566. El reinicio lo recrea; la IP queda fija en el endpoint
+    # (--ip) y el modo persistent conserva el estado.
+    Invoke-Native docker @('restart', 'floci') | Out-Null
+    for ($i = 0; $i -lt 30; $i++) {
+        try { if ((Invoke-WebRequest -UseBasicParsing 'http://localhost:4566/_floci/health' -TimeoutSec 5).StatusCode -eq 200) { break } } catch {}
+        Start-Sleep 2
+    }
+    if ($holder) {
+        $alias = "$(docker inspect $holder --format '{{index .Config.Labels \"com.docker.compose.service\"}}')".Trim()
+        $connectArgs = @('network', 'connect') + $(if ($alias) { @('--alias', $alias) } else { @() }) + @('aegisvolt', $holder)
+        Invoke-Native docker $connectArgs | Out-Null
+        # Mismo motivo que arriba: recrea sus puertos publicados (p. ej. :4200).
+        Invoke-Native docker @('restart', $holder) | Out-Null
+    }
+    Write-Host "Floci reconectado en $expected"
+    return $true
+}
+
+# Targets del NLB interno: nodos del cluster en el NodePort de cada workload
+# expuesto (graphql-gateway 30080, frontend 30081), como lo haria el AWS Load
+# Balancer Controller (TargetGroupBinding). Quita los nodos que ya no existen
+# (p. ej. un nodo k3s que cambio de IP al reiniciarse).
+function Sync-NlbTargets {
+    param([Parameter(Mandatory)][string]$Environment, [Parameter(Mandatory)][string]$Kubeconfig)
+    # "$(...)": una salida vacia de un comando nativo es AutomationNull y no admite .Trim().
+    $nodeIps = @("$(kubectl --kubeconfig $Kubeconfig get nodes -o "jsonpath={.items[*].status.addresses[?(@.type=='InternalIP')].address}")".Trim() -split '\s+' | Where-Object { $_ })
+    if (-not $nodeIps) { throw 'No se pudieron obtener las IPs de los nodos del cluster' }
+    foreach ($binding in @(@{ Tg = 'tg-graphql'; Port = 30080 }, @{ Tg = 'tg-frontend'; Port = 30081 })) {
+        $tg = "$(aws elbv2 describe-target-groups --names "aegisvolt-$Environment-$($binding.Tg)" --query 'TargetGroups[0].TargetGroupArn' --output text)".Trim()
+        if (-not $tg -or $tg -eq 'None') { Write-Host "Target group $($binding.Tg) inexistente: se omite"; continue }
+        $registered = @("$(aws elbv2 describe-target-health --target-group-arn $tg --query 'TargetHealthDescriptions[].Target.Id' --output text)".Trim() -split '\s+' | Where-Object { $_ -and $_ -ne 'None' })
+        foreach ($ip in $nodeIps) {
+            if ($registered -notcontains $ip) { Invoke-Native aws @('elbv2', 'register-targets', '--target-group-arn', $tg, '--targets', "Id=$ip,Port=$($binding.Port)") }
+        }
+        foreach ($ip in $registered) {
+            if ($nodeIps -notcontains $ip) { Invoke-Native aws @('elbv2', 'deregister-targets', '--target-group-arn', $tg, '--targets', "Id=$ip,Port=$($binding.Port)") }
+        }
+    }
+}
+
 function Invoke-Kubectl {
     param([Parameter(Mandatory)][string]$Kubeconfig, [Parameter(Mandatory)][string[]]$Arguments)
     Invoke-Native kubectl (@('--kubeconfig', $Kubeconfig, '-n', $script:Namespace) + $Arguments)
