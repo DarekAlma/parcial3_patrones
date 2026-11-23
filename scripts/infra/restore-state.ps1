@@ -36,16 +36,21 @@ $restored = Get-Content $tmp -Raw | ConvertFrom-Json
 if (-not $restored.lineage -or $null -eq $restored.serial) { throw 'La version descargada no es un tfstate valido.' }
 Write-Host "Version $VersionId -> serial $($restored.serial), lineage $($restored.lineage), $(@($restored.resources).Count) recursos"
 
-Set-Location (Join-Path $RepoRoot 'infra\terraform')
-Invoke-Native terraform @('init', '-input=false', '-reconfigure')
-Invoke-Native terraform @('workspace', 'select', $Environment)
+# Push/Pop: al terminar (o fallar) se vuelve al directorio de quien lo llamo.
+Push-Location (Join-Path $RepoRoot 'infra\terraform')
+try {
+    Invoke-Native terraform @('init', '-input=false', '-reconfigure')
+    Invoke-Native terraform @('workspace', 'select', $Environment)
 
-$current = (terraform state pull | Out-String | ConvertFrom-Json)
-if ($current.lineage -ne $restored.lineage) {
-    throw "Lineage distinto ($($current.lineage) vs $($restored.lineage)): no es el mismo estado."
+    $current = (terraform state pull | Out-String | ConvertFrom-Json)
+    if ($current.lineage -ne $restored.lineage) {
+        throw "Lineage distinto ($($current.lineage) vs $($restored.lineage)): no es el mismo estado."
+    }
+
+    # -force: el serial restaurado es menor que el actual.
+    Invoke-Native terraform @('state', 'push', '-force', $tmp)
+} finally {
+    Pop-Location
+    Remove-Item $tmp -ErrorAction SilentlyContinue
 }
-
-# -force: el serial restaurado es menor que el actual.
-Invoke-Native terraform @('state', 'push', '-force', $tmp)
-Remove-Item $tmp
 Write-Host "Estado de '$Environment' restaurado a la version $VersionId. Ejecuta terraform plan para verificar."

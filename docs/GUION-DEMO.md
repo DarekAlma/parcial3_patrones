@@ -155,7 +155,9 @@ aws elbv2 describe-target-health --target-group-arn $tg --output table      # IP
 git switch test; git pull -q
 git commit --allow-empty -m "intento directo"
 git push origin test             # GH013: Changes must be made through a pull request
-git push --force origin test     # GH013: rechazado
+# Force push REAL: reescribir historia (si el commit solo avanza, no es non-fast-forward)
+git reset --hard HEAD~1; git commit --allow-empty -m "historia reescrita"
+git push --force origin test     # GH013: Cannot force-push to this branch
 git reset --hard origin/test; git switch dev
 ```
 
