@@ -107,7 +107,11 @@ aws dynamodb list-tables --query "TableNames" --output table   # aegisvolt-<serv
 .\scripts\infra\restore-state.ps1 -Environment dev          # tabla de VersionId / fecha / IsLatest
 ```
 
-- Además, en la Floci UI: S3 → `aegisvolt-tfstate` → `env:/dev/...` → Versions.
+- La consola de Floci **no lista versiones** de objetos. El versioning se muestra por la API de S3:
+  ```powershell
+  aws s3api list-object-versions --bucket aegisvolt-tfstate --prefix env:/dev/aegisvolt/terraform.tfstate --query "Versions[?Key=='env:/dev/aegisvolt/terraform.tfstate'].[VersionId,LastModified,IsLatest,Size]" --output table
+  ```
+  En la UI (`aegisvolt-tfstate` → `env:` → `dev` → `aegisvolt`) solo se ve la key por workspace y su «Last Modified», que cambia con cada `apply`.
 - Si piden restaurar en vivo, usa la versión **más reciente**. Así es inocuo y deja una versión nueva idéntica:
   ```powershell
   .\scripts\infra\restore-state.ps1 -Environment dev -VersionId <VersionId de IsLatest=True>
