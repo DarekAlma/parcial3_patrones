@@ -112,3 +112,15 @@ def test_saga_row_sin_compensaciones():
     s = saga("COMPLETED")
     row = saga_row("dev", s, classify(s, facts(), NOW, 120))
     assert row["compensaciones"] == "-" and row["kwh"] == "-" and row["clasificacion"] == "OK"
+
+
+def test_step_outcome_y_estado_final():
+    from aegisvolt_observability.audit_rules import final_state_name, step_outcome
+
+    assert step_outcome({"status": "SUCCEEDED"}) == (True, "ok")
+    assert step_outcome({"status": "COMPENSATED"}) == (True, "ok (despues compensado)")
+    assert step_outcome({"status": "FAILED", "error": "energy-dispatch-service: falla"}) == (False, "energy-dispatch-service: falla")
+    assert step_outcome({"status": "COMPENSATION_FAILED"})[0] is False
+    assert final_state_name("COMPLETED") == "Completed"
+    assert final_state_name("COMPENSATED") == "Compensated"
+    assert final_state_name("FAILED") == "SagaFailed"
