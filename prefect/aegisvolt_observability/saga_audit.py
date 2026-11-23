@@ -24,7 +24,7 @@ from boto3.dynamodb.types import TypeDeserializer
 from prefect import flow, get_run_logger, task
 from prefect.artifacts import create_markdown_artifact, create_table_artifact
 
-from .audit_rules import AuditResult, SagaFacts, classify, summarize, utcnow
+from .audit_rules import AuditResult, SagaFacts, classify, saga_row, summarize, utcnow
 from .aws import ENVIRONMENTS, client, private_api_url, public_api_url, scan_all, table
 
 _des = TypeDeserializer()
@@ -119,10 +119,12 @@ def saga_consistency_audit(
     orphan_after_seconds: int = 120,
     auto_recover: bool = True,
     limit: int = 500,
+    detail_per_environment: int = 15,
 ) -> dict[str, dict[str, int]]:
     logger = get_run_logger()
     report: dict[str, dict[str, int]] = {}
     problems: list[dict[str, Any]] = []
+    detail: list[dict[str, Any]] = []
 
     for env in environments:
         try:
@@ -146,6 +148,15 @@ def saga_consistency_audit(
         counts = summarize(results)
         report[env] = counts
         logger.info("Auditoria %s: %s", env, counts)
+        # Detalle de las SAGAs mas recientes (load_sagas las ordena de la mas
+        # nueva a la mas vieja): cada una con su recorrido y su veredicto.
+        for s, r in list(zip(sagas, results))[:detail_per_environment]:
+            row = saga_row(env, s, r)
+            detail.append(row)
+            logger.info(
+                "SAGA %s (%s) %s -> %s | pasos: %s | compensaciones: %s",
+                row["saga_id"], env, row["estado"], row["clasificacion"], row["pasos"], row["compensaciones"],
+            )
         for r in results:
             if r.classification in ("ORPHANED", "NEEDS_ATTENTION", "INCONSISTENT") or r.violations:
                 problems.append(
@@ -177,6 +188,13 @@ def saga_consistency_audit(
     create_markdown_artifact(key="aegisvolt-saga-audit-summary", markdown="\n".join(md), description="Resumen de la auditoria SAGA")
     if problems:
         create_table_artifact(key="aegisvolt-saga-problems", table=problems, description="SAGAs huerfanas, inconsistentes o que requieren atencion")
+    if detail:
+        detail.sort(key=lambda row: row["creada"], reverse=True)
+        create_table_artifact(
+            key="aegisvolt-saga-transactions",
+            table=detail,
+            description=f"Ultimas {detail_per_environment} SAGAs por ambiente: pasos, compensaciones y veredicto (saga_id = correlation_id en CloudWatch)",
+        )
 
     bad = sum(c["INCONSISTENT"] + c["NEEDS_ATTENTION"] + c["ORPHANED"] for c in report.values())
     if bad:

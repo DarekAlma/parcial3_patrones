@@ -100,6 +100,41 @@ def classify(saga: dict, facts: Optional[SagaFacts], now: datetime, orphan_after
     return result
 
 
+_STEP_MARK = {
+    "SUCCEEDED": "ok",
+    "FAILED": "FALLO",
+    "COMPENSATED": "compensado",
+    "COMPENSATION_FAILED": "compensacion fallida",
+    "COMPENSATING": "compensando",
+    "RUNNING": "en curso",
+    "PENDING": "-",
+}
+
+
+def saga_row(env: str, saga: dict, result: AuditResult) -> dict:
+    """Fila del artifact de detalle: una SAGA con su recorrido y su veredicto.
+
+    saga_id es tambien el correlation_id: con el se rastrea en CloudWatch.
+    """
+    data = saga.get("input") or {}
+    steps = " > ".join(f"{s['name']} ({_STEP_MARK.get(s.get('status'), s.get('status'))})" for s in saga.get("steps") or [])
+    comps = ", ".join(f"{c['step']}: {c.get('outcome') or c.get('status')}" for c in saga.get("compensations") or []) or "-"
+    return {
+        "creada": saga.get("createdAt", "")[:19].replace("T", " "),
+        "ambiente": env,
+        "saga_id": result.saga_id,
+        "flota": data.get("fleetId", "-"),
+        "estacion": data.get("stationId", "-"),
+        # DynamoDB entrega los numeros como Decimal, que no se serializa a JSON.
+        "kwh": float(data["kwh"]) if data.get("kwh") is not None else "-",
+        "estado": result.status,
+        "clasificacion": result.classification,
+        "paso_fallido": result.failed_step or "-",
+        "pasos": steps or "-",
+        "compensaciones": comps,
+    }
+
+
 def summarize(results: list[AuditResult]) -> dict[str, int]:
     keys = ["OK", "COMPENSATED_OK", "IN_FLIGHT", "ORPHANED", "NEEDS_ATTENTION", "INCONSISTENT"]
     counts = {k: 0 for k in keys}
