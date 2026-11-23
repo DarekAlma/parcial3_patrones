@@ -284,6 +284,8 @@ Esquema unificado en [schema.graphql](../graphql-gateway/src/schema.graphql), co
 | `saga-consistency-audit/every-5-minutes` | 300 s | Cruza el log de cada SAGA con las tablas de los 3 servicios. La clasifica (`OK`, `COMPENSATED_OK`, `IN_FLIGHT`, `ORPHANED`, `NEEDS_ATTENTION` o `INCONSISTENT`), compensa las huérfanas por la **API privada** y publica métricas. |
 | `aegisvolt-observability/on-demand` | manual | Ejecuta los dos anteriores; es el que se usa en la demo. |
 
+**Detalle por SAGA.** El artifact de tabla `aegisvolt-saga-transactions` lista las últimas 15 SAGAs de cada ambiente, de la más nueva a la más vieja. Por cada una muestra `saga_id` (que es el `correlation_id`), ambiente, flota, estación, kWh, estado, clasificación, paso fallido, el recorrido de pasos y las compensaciones con su resultado (`CHARGE_WALLET: REFUNDED, RESERVE_CONNECTOR: RELEASED`). El log del run escribe una línea por SAGA con lo mismo. En el dashboard: **Artifacts → `aegisvolt-saga-transactions`**, con un buscador por `saga_id`. Código: `saga_row()` en [audit_rules.py](../prefect/aegisvolt_observability/audit_rules.py) y el bloque de detalle en [saga_audit.py](../prefect/aegisvolt_observability/saga_audit.py).
+
 **Huérfana** = estado no terminal y más de 120 s sin avanzar ([saga_audit.py:119](../prefect/aegisvolt_observability/saga_audit.py#L119), [audit_rules.py:89](../prefect/aegisvolt_observability/audit_rules.py#L89)). **Inconsistente** = estado terminal que no cuadra con las tablas; por ejemplo, `COMPENSATED` con un cobro y sin su reembolso.
 
 ---
@@ -465,7 +467,9 @@ kubectl --kubeconfig "$HOME\.kube\aegisvolt-test.yaml" -n aegisvolt exec deploy/
 docker exec aegisvolt-prefect-prefect-observer-1 prefect deployment run "aegisvolt-observability/on-demand"
 .\scripts\demo\trace-saga.ps1 -Environment test -SagaId $SAGA
 ```
-En Prefect (http://localhost:4200) abre el run. Muestra los subflows `environment-health` y `saga-consistency-audit`, y los artifacts: tabla de salud, matriz de flags por ambiente y auditoría de SAGAs.
+En Prefect (http://localhost:4200) abre el run. Muestra los subflows `environment-health` y `saga-consistency-audit`, y los artifacts: tabla de salud, matriz de flags por ambiente, resumen de la auditoría y **`aegisvolt-saga-transactions`**. En esa última, busca el `sagaId` de la SAGA fallida: aparece con `COMPENSATED`, `COMPENSATED_OK`, paso fallido `ACTIVATE_CHARGER` y compensaciones `CHARGE_WALLET: REFUNDED, RESERVE_CONNECTOR: RELEASED`. Con ese mismo id, `trace-saga.ps1` muestra la línea de tiempo en CloudWatch.
+
+**Ojo:** la auditoría corre cada 5 minutos. Para que una SAGA recién disparada aparezca en Prefect, lanza el run `on-demand` (comando de arriba) **después** de la carga.
 
 ### 6.4-b Cambie una flag en `dev` sin redesplegar y muestre que el frontend de dev cambia y `prod` no
 

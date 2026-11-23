@@ -72,3 +72,43 @@ def test_summarize_cuenta_por_clasificacion():
     ]
     counts = summarize(results)
     assert counts == {"OK": 1, "COMPENSATED_OK": 0, "IN_FLIGHT": 0, "ORPHANED": 1, "NEEDS_ATTENTION": 1, "INCONSISTENT": 0, "TOTAL": 3}
+
+
+def test_saga_row_compensada_muestra_pasos_y_compensaciones():
+    from decimal import Decimal
+
+    from aegisvolt_observability.audit_rules import saga_row
+
+    s = {
+        "sagaId": "saga-abc",
+        "status": "COMPENSATED",
+        "createdAt": "2026-11-22T20:43:15.089Z",
+        "updatedAt": "2026-11-22T20:43:15.268Z",
+        "input": {"fleetId": "fleet-andina", "stationId": "st-bog-norte", "kwh": Decimal("20")},
+        "error": {"step": "ACTIVATE_CHARGER"},
+        "steps": [
+            {"name": "RESERVE_CONNECTOR", "status": "COMPENSATED"},
+            {"name": "CHARGE_WALLET", "status": "COMPENSATED"},
+            {"name": "ACTIVATE_CHARGER", "status": "FAILED"},
+        ],
+        "compensations": [
+            {"step": "CHARGE_WALLET", "status": "SUCCEEDED", "outcome": "REFUNDED"},
+            {"step": "RESERVE_CONNECTOR", "status": "SUCCEEDED", "outcome": "RELEASED"},
+        ],
+    }
+    r = classify(s, facts(reservation_status="RELEASED", connector_locked_by_saga=False, refunded=True, session_status="FAILED"), NOW, 120)
+    row = saga_row("test", s, r)
+    assert row["saga_id"] == "saga-abc" and row["ambiente"] == "test"
+    assert row["clasificacion"] == "COMPENSATED_OK" and row["paso_fallido"] == "ACTIVATE_CHARGER"
+    assert row["kwh"] == 20.0 and isinstance(row["kwh"], float)
+    assert row["compensaciones"] == "CHARGE_WALLET: REFUNDED, RESERVE_CONNECTOR: RELEASED"
+    assert "ACTIVATE_CHARGER (FALLO)" in row["pasos"]
+    assert row["creada"] == "2026-11-22 20:43:15"
+
+
+def test_saga_row_sin_compensaciones():
+    from aegisvolt_observability.audit_rules import saga_row
+
+    s = saga("COMPLETED")
+    row = saga_row("dev", s, classify(s, facts(), NOW, 120))
+    assert row["compensaciones"] == "-" and row["kwh"] == "-" and row["clasificacion"] == "OK"
