@@ -135,6 +135,22 @@ def saga_row(env: str, saga: dict, result: AuditResult) -> dict:
     }
 
 
+def step_outcome(step: dict) -> tuple[bool, str]:
+    """(exito, descripcion) de un paso segun el log de la SAGA. Logica pura."""
+    status = step.get("status")
+    if status == "FAILED":
+        return False, step.get("error") or "el paso fallo"
+    if status == "COMPENSATION_FAILED":
+        return False, "la compensacion de este paso fallo"
+    labels = {"SUCCEEDED": "ok", "COMPENSATED": "ok (despues compensado)", "COMPENSATING": "compensando"}
+    return True, labels.get(status, status or "-")
+
+
+def final_state_name(status: str) -> str:
+    """Nombre del estado del run hijo segun el estado final de la SAGA."""
+    return {"COMPLETED": "Completed", "COMPENSATED": "Compensated"}.get(status, "SagaFailed")
+
+
 def summarize(results: list[AuditResult]) -> dict[str, int]:
     keys = ["OK", "COMPENSATED_OK", "IN_FLIGHT", "ORPHANED", "NEEDS_ATTENTION", "INCONSISTENT"]
     counts = {k: 0 for k in keys}

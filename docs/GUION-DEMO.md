@@ -257,7 +257,8 @@ kubectl --kubeconfig "$HOME\.kube\aegisvolt-test.yaml" -n aegisvolt exec deploy/
 docker exec aegisvolt-prefect-prefect-observer-1 prefect deployment run "aegisvolt-observability/on-demand"
 ```
 
-- En Prefect (pestaña 4) abrir el run: subflows `environment-health` y `saga-consistency-audit`, sus tasks por ambiente y los artifacts. Los artifacts son la tabla de salud, la matriz de flags × ambiente, el resumen de la auditoría y **`aegisvolt-saga-transactions`**: una fila por SAGA con pasos, compensaciones y veredicto. Busca ahí el `sagaId` del bloque 4.1 (lanza el run **después** de la carga).
+- En Prefect (pestaña 4) abrir el run: subflows `environment-health` y `saga-consistency-audit`, sus tasks por ambiente y los artifacts. Los artifacts son la tabla de salud, la matriz de flags × ambiente, el resumen de la auditoría y **`aegisvolt-saga-transactions`**: una fila por SAGA con pasos, compensaciones y veredicto. Busca ahí el `sagaId` del bloque 4.1 (lanza el run **después** de la carga). Los artifacts están en http://localhost:4200/artifacts; no aparecen en la barra lateral.
+- **La SAGA como run:** en **Runs** aparece `test · <sagaId>` en estado **Compensated**, con un task por paso (`ACTIVATE_CHARGER` en rojo) y uno por compensación. Aparece en ≤ 1 minuto, o al instante con `docker exec aegisvolt-prefect-prefect-observer-1 prefect deployment run "saga-runs/every-minute"`.
 - Rastrear la SAGA fallida del bloque 4.1 en CloudWatch:
   ```powershell
   .\scripts\demo\trace-saga.ps1 -Environment test -SagaId $SAGA
