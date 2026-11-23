@@ -18,7 +18,7 @@ param(
     [Parameter(Mandatory)][string]$Environment,
     [Parameter(Mandatory)][string]$Service,
     [string]$Version = 'manual',
-    [int]$Requests = 60,
+    [int]$Requests = 100,
     [int]$MinRequests = 5,
     [double]$MaxErrorRate = 0.05,
     [int]$MetricsWaitSeconds = 20,
@@ -71,6 +71,19 @@ try {
     Write-Summary @("### $Service ($Environment): ROLLBACK", '', 'El canary no paso el readiness probe.')
     exit 1
 }
+
+# Ready no basta: el pod debe figurar como endpoint listo del Service y
+# kube-proxy debe haber programado la regla. Un pod que arranca rapido (nginx
+# del frontend, ~1 s) recibiria 0 requests si el trafico sale antes.
+$canaryIp = ''
+for ($i = 0; $i -lt 30; $i++) {
+    $canaryIp = "$(Get-KubectlOutput -Kubeconfig $kc -Arguments @('get', 'pods', '-l', "app.kubernetes.io/name=$Service,aegisvolt.io/track=canary", '-o', 'jsonpath={.items[0].status.podIP}'))".Trim()
+    $ready = "$(Get-KubectlOutput -Kubeconfig $kc -Arguments @('get', 'endpointslices', '-l', "kubernetes.io/service-name=$Service", '-o', 'jsonpath={range .items[*].endpoints[?(@.conditions.ready==true)]}{.addresses[0]} {end}'))"
+    if ($canaryIp -and ($ready -split '\s+') -contains $canaryIp) { break }
+    Start-Sleep -Seconds 1
+}
+Write-Host "Canary $canaryIp registrado como endpoint del Service"
+Start-Sleep -Seconds 3
 
 # ------------------------------------------- 3. trafico sintetico al Service
 # Se ejecuta desde un pod de la plataforma (permitido por la NetworkPolicy) y
