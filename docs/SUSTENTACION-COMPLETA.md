@@ -283,6 +283,9 @@ Esquema unificado en [schema.graphql](../graphql-gateway/src/schema.graphql), co
 | `environment-health/every-2-minutes` | 120 s | Por ambiente: API Gateway responde, clúster `ACTIVE`, targets del NLB `healthy`, alarmas y flags. |
 | `saga-consistency-audit/every-5-minutes` | 300 s | Cruza el log de cada SAGA con las tablas de los 3 servicios. La clasifica (`OK`, `COMPENSATED_OK`, `IN_FLIGHT`, `ORPHANED`, `NEEDS_ATTENTION` o `INCONSISTENT`), compensa las huérfanas por la **API privada** y publica métricas. |
 | `aegisvolt-observability/on-demand` | manual | Ejecuta los dos anteriores; es el que se usa en la demo. |
+| `saga-runs/every-minute` | 60 s | Publica **cada SAGA terminada como su propio flow run** (`saga-run`), llamado `<env> · <sagaId>`. Su estado es `Completed`, `Compensated` o `SagaFailed`; tiene un task por paso (el que falló, en rojo, con el error del servicio) y un task por compensación (`REFUNDED`, `RELEASED`). |
+
+**Cada SAGA como un run.** La SAGA la ejecuta el orquestador (`graphql-gateway`), no Prefect. El flow `saga-runs` la **reconstruye** desde su log persistente en DynamoDB, para que en **Runs** se vea como una ejecución con su línea de tiempo. Aparece como máximo 1 minuto después de la carga, o al instante con `prefect deployment run "saga-runs/every-minute"`. El nombre del run es el `sagaId`, que también es el `correlation_id` de CloudWatch. Código: [saga_runs.py](../prefect/aegisvolt_observability/saga_runs.py).
 
 **Detalle por SAGA.** El artifact de tabla `aegisvolt-saga-transactions` lista las últimas 15 SAGAs de cada ambiente, de la más nueva a la más vieja. Por cada una muestra `saga_id` (que es el `correlation_id`), ambiente, flota, estación, kWh, estado, clasificación, paso fallido, el recorrido de pasos y las compensaciones con su resultado (`CHARGE_WALLET: REFUNDED, RESERVE_CONNECTOR: RELEASED`). El log del run escribe una línea por SAGA con lo mismo. En el dashboard: **Artifacts → `aegisvolt-saga-transactions`**, con un buscador por `saga_id`. Código: `saga_row()` en [audit_rules.py](../prefect/aegisvolt_observability/audit_rules.py) y el bloque de detalle en [saga_audit.py](../prefect/aegisvolt_observability/saga_audit.py).
 
@@ -469,7 +472,12 @@ docker exec aegisvolt-prefect-prefect-observer-1 prefect deployment run "aegisvo
 ```
 En Prefect (http://localhost:4200) abre el run. Muestra los subflows `environment-health` y `saga-consistency-audit`, y los artifacts: tabla de salud, matriz de flags por ambiente, resumen de la auditoría y **`aegisvolt-saga-transactions`**. En esa última, busca el `sagaId` de la SAGA fallida: aparece con `COMPENSATED`, `COMPENSATED_OK`, paso fallido `ACTIVATE_CHARGER` y compensaciones `CHARGE_WALLET: REFUNDED, RESERVE_CONNECTOR: RELEASED`. Con ese mismo id, `trace-saga.ps1` muestra la línea de tiempo en CloudWatch.
 
-**Ojo:** la auditoría corre cada 5 minutos. Para que una SAGA recién disparada aparezca en Prefect, lanza el run `on-demand` (comando de arriba) **después** de la carga.
+**La SAGA como run:** en **Runs** aparece `test · <sagaId>` en estado **Compensated**. Ábrelo: el grafo muestra `1 PRICE_QUOTE`, `2 RESERVE_CONNECTOR` y `3 CHARGE_WALLET` en verde, `4 ACTIVATE_CHARGER [pivot]` en rojo, y `compensar CHARGE_WALLET` y `compensar RESERVE_CONNECTOR` en verde. Los logs traen el error del servicio y los resultados `REFUNDED` y `RELEASED`. Para no esperar el minuto:
+```powershell
+docker exec aegisvolt-prefect-prefect-observer-1 prefect deployment run "saga-runs/every-minute"
+```
+
+**Ojo:** la auditoría corre cada 5 minutos. Para que una SAGA recién disparada aparezca en el artifact, lanza el run `on-demand` **después** de la carga. El artifact se abre en http://localhost:4200/artifacts (no está en la barra lateral de Prefect 3.1) o en la pestaña **Artifacts** del run.
 
 ### 6.4-b Cambie una flag en `dev` sin redesplegar y muestre que el frontend de dev cambia y `prod` no
 
