@@ -6,6 +6,7 @@
 
 | Documento | Para qué |
 |-----------|----------|
+| [SUSTENTACION-COMPLETA.md](SUSTENTACION-COMPLETA.md) | **Empieza aquí.** Todo lo construido, su objetivo y cómo cumple; preguntas con respuesta y código; chuleta de demos; resultado del ensayo |
 | [TECNOLOGIAS.md](TECNOLOGIAS.md) | Qué es cada tecnología, para qué se usa aquí y dónde está |
 | [PREGUNTAS-SUSTENTACION.md](PREGUNTAS-SUSTENTACION.md) | Preguntas probables del docente con respuesta corta y ubicación en el código |
 | [GUION-DEMO.md](GUION-DEMO.md) | Guion cronometrado de la demo en vivo, con comandos y Plan B |
