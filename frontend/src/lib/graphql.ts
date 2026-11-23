@@ -15,7 +15,7 @@ export interface GqlOptions {
 }
 
 export async function gql<T>(query: string, variables?: Record<string, unknown>, opts: GqlOptions = {}): Promise<T> {
-  const res = await fetch(`${opts.baseUrl ?? ''}/graphql`, {
+  const res = opts.baseUrl ? await crossOriginQuery(opts.baseUrl, query, variables, opts.operationName) : await fetch('/graphql', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query, variables, operationName: opts.operationName }),
@@ -24,6 +24,19 @@ export async function gql<T>(query: string, variables?: Record<string, unknown>,
   const body = (await res.json()) as { data?: T; errors?: { message: string }[] };
   if (body.errors?.length) throw new GraphQLError(body.errors.map((e) => e.message).join('; '));
   return body.data as T;
+}
+
+/**
+ * Lectura en OTRO ambiente (otro origen). Se envia como GET sin cabeceras
+ * propias: es una "simple request" de CORS y no dispara el preflight OPTIONS
+ * (el API Gateway de Floci responde 500 al preflight). La respuesta trae
+ * Access-Control-Allow-Origin. Solo para queries: una mutation nunca va por GET.
+ */
+function crossOriginQuery(baseUrl: string, query: string, variables?: Record<string, unknown>, operationName?: string) {
+  const params = new URLSearchParams({ query });
+  if (variables) params.set('variables', JSON.stringify(variables));
+  if (operationName) params.set('operationName', operationName);
+  return fetch(`${baseUrl}/graphql?${params.toString()}`);
 }
 
 /**
