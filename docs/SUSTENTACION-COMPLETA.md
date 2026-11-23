@@ -348,7 +348,11 @@ aws s3 ls --recursive s3://aegisvolt-tfstate/ | Select-String -NotMatch tflock
 .\scripts\infra\restore-state.ps1 -Environment dev -VersionId <VersionId IsLatest>  # inocuo: restaura la actual
 cd infra\terraform; terraform plan "-var-file=environments/dev.tfvars"; cd ..\..   # No changes
 ```
-También se ve en la Floci UI (http://localhost:4566/_floci/ui) → S3 → `aegisvolt-tfstate` → Versions.
+Equivalente directo con la CLI:
+```powershell
+aws s3api list-object-versions --bucket aegisvolt-tfstate --prefix env:/dev/aegisvolt/terraform.tfstate --query "Versions[?Key=='env:/dev/aegisvolt/terraform.tfstate'].[VersionId,LastModified,IsLatest,Size]" --output table
+```
+**La consola de Floci no lista versiones de objetos.** En la UI (Storage → `aegisvolt-tfstate` → `env:` → `dev` → `aegisvolt` → `terraform.tfstate`) solo se ven la key por workspace y su «Last Modified», que cambia con cada `apply`. Si el profesor pregunta: «La consola del emulador no muestra el historial; el versioning está en la API de S3, que es la que usa Terraform y la que uso para restaurar.»
 
 ### 6.1-c Recorrido de un paquete desde API Gateway hasta el pod a través del VPCE; qué tabla de rutas o política interviene
 
